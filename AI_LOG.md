@@ -1,0 +1,275 @@
+# AI Log
+
+Real, unedited sequence of the AI-assisted process for the InLab/Artefacto technical
+challenge (`Teste_Tecnico_Dev_InLab_ENVIAR_5dias.pdf`). Tools used: **Claude Code** (this
+log's entries so far) and **Antigravity** (entries to be added as it's used).
+
+Written in English to match the working-session language; the software itself is in
+Portuguese, per project decision.
+
+Format follows the challenge's required template: what I was doing → what I asked the AI
+→ what it answered → what worked/didn't → how I resolved it → how I continued.
+
+---
+
+## Step 1 — Understanding the challenge and choosing a concept
+
+**What I was doing:** Reading the challenge PDF and trying to figure out what the "3D
+board" (tabuleiro) should actually represent, before writing any code.
+
+**What I asked the AI:** "let's brainstorm my options to make the challenge in
+@Teste_Tecnico_Dev_InLab_ENVIAR_5dias.pdf i want to see options of the 3d table styles"
+
+**What the AI answered:** It assumed "styles" meant visual/aesthetic direction, and asked
+a multiple-choice question about visual themes (minimalist/clean tech, board-game/chess,
+sci-fi, or "show me options side by side") before proposing anything.
+
+**Did it work? What was good/bad:** This was a miss — I hadn't decided the *concept*
+(what the board represents) yet, only asked to see options, and the AI jumped straight to
+visual aesthetics. Asking a premature, narrowly-scoped question instead of first
+proposing conceptual directions.
+
+**How I resolved it:** I corrected it directly: "it's not to decide the style but to
+understand the challenge, and propose ideas, for example if the table will be about
+games, products or another scope."
+
+**How I continued:** The AI re-scoped and proposed three concrete concept directions
+instead of a style survey: (1) a literal board game, (2) a warehouse/floor-plan layout
+tool, (3) a consumer furniture planner — each with trade-offs and a recommendation. I
+picked option 2 (layout tool) because it best shows product/UX thinking relevant to the
+job, not just a technical toy.
+
+---
+
+## Step 2 — Technical implications of the chosen concept
+
+**What I was doing:** Understanding what picking "layout tool" actually changes
+technically, before locking in architecture decisions.
+
+**What I asked the AI:** "option 2 sounds right, let's see the techinical issues with it"
+
+**What the AI answered:** Mapped all 7 challenge requirements (grid/camera, pieces, drag,
+collision, snap, measurement, save/reload) to the layout-tool framing, flagging where the
+theme changes the implementation (e.g. variable footprints instead of uniform 1×1 pieces,
+real-world units for the measurement feature) and where it doesn't (drag/raycasting is
+the same regardless of theme).
+
+**Did it work? What was good/bad:** Useful — it surfaced two decisions I hadn't
+considered yet (piece rotation, and whether to use Supabase vs. localStorage) as the ones
+with the biggest time-budget impact, instead of listing everything as equally important.
+
+**How I resolved it:** No fix needed — used this as the basis for the next round of
+decisions.
+
+**How I continued:** Answered the persistence question (localStorage first, Supabase as
+a follow-up if time allows) and the rotation question (allow 90° rotation, accepting the
+extra collision-math complexity) via structured multiple-choice questions from the AI.
+
+---
+
+## Step 3 — Board visual style
+
+**What I was doing:** Coming back to the original visual-style question, now that the
+concept (warehouse layout tool) was settled — this time it's a real visual decision, not
+a premature one.
+
+**What I asked the AI:** "option 1, let's keep going" (selecting from three board styles
+the AI proposed: clean CAD/blueprint, warehouse concrete-floor with texture, and a dark
+"innovation lab" tech look).
+
+**What the AI answered:** Recommended the CAD/blueprint style as cheapest to build (drei
+`<Grid>` helper + flat materials, no texture assets) and most legible once collision
+highlighting and measurement labels are layered on top.
+
+**Did it work? What was good/bad:** Agreed with the recommendation — no correction
+needed.
+
+**How I continued:** Moved to defining the concrete piece set (pallet, shelf, crate,
+workstation) and their footprints/colors.
+
+---
+
+## Step 4 — Collision behavior and measurement scope
+
+**What I was doing:** Deciding two remaining interaction details before writing the
+design doc: what happens on an invalid drop, and what exactly the "measurement" feature
+shows.
+
+**What I asked the AI:** Answered two structured questions from the AI: whether an
+overlapping drop should be rejected (snap back) or allowed with a visual warning; and
+whether the measurement panel should show piece size, distance between two pieces, or
+both.
+
+**What the AI answered:** Recommended "reject the drop" (no invalid state ever exists,
+cleaner to demo) and "both" for measurement (reuses the same scale-factor math, low extra
+cost).
+
+**Did it work? What was good/bad:** Agreed with both recommendations.
+
+**How I continued:** Confirmed the AI tooling for the build (Claude Code + Antigravity),
+then asked the AI to write up the agreed design as `DESIGN.md` and start this log,
+deferring GitHub repo creation until the architecture is fully settled.
+
+---
+
+## Step 5 — Job description mapping and pushing back on testing scope
+
+**What I was doing:** Moving from product design (`DESIGN.md`) into technical
+architecture, starting from what the job posting actually asks for, so the architecture
+visibly demonstrates the right skills — not just makes the challenge's 7 requirements
+work.
+
+**What I asked the AI:** "now list me the jb for this role to start deciding the
+tecnologies and archeture we will use, this will be also the creation of the architeture
+file"
+
+**What the AI answered:** Listed the job posting's requirements, then asked how much
+automated testing to build given the ~6-10h budget, recommending unit tests on pure logic
+only as the safe default.
+
+**Did it work? What was good/bad:** I overrode the recommendation and asked for
+"storybook, cypress, ci/cd and vitest + react testing library" — the full stack, not the
+scoped-down option.
+
+**How I resolved it:** Rather than silently either rejecting my answer or accepting scope
+creep against the challenge's own stated budget, the AI flagged the tension directly
+(quoted the PDF's "prefira um núcleo bem-feito a tudo pela metade") and proposed
+sequencing all five tools by priority — Vitest and CI/CD as core, React Testing Library
+once features work, Storybook and Cypress as explicit stretch goals — so the 7 required
+features can never get silently starved by tooling setup.
+
+**How I continued:** Locked in that priority order and had it write `ARCHITECTURE.md`
+with the job-requirement mapping and the tooling table.
+
+---
+
+## Step 6 — Architecture decisions: folders, state, Supabase, CI
+
+**What I was doing:** Filling in the rest of `ARCHITECTURE.md` — folder structure,
+Zustand store shape, Supabase schema/auth, package manager, and the CI workflow — one
+decision at a time.
+
+**What I asked the AI:** A sequence of prompts, each answering one open item: "let's see
+the folder structure" → "i want to adjust the UI folder as it should be a folder with
+index, in this way we can create the testing file inside this folder and with future
+integration with storybook" → "let's do the store shape" → "go with transient local drag
+state" → "yes, let's do Supabase next" → anonymous-auth-and-RLS chosen over a login form
+or no auth → "let's go with github workflow" → pnpm chosen over npm.
+
+**What the AI answered:** For each, it proposed the structure/schema/workflow with
+trade-offs and a recommendation (e.g. transient drag state to avoid re-rendering the
+whole UI on every drag frame; anonymous Supabase auth instead of a login form, to satisfy
+the "authentication" requirement without spending hours on login UI).
+
+**Did it work? What was good/bad:** Mostly agreed with recommendations, with one real
+correction: the AI's first folder-structure proposal put UI components as flat files;
+I redirected it to a folder-per-component pattern with an `index.ts` re-export, so tests
+and future Storybook stories have somewhere to live alongside each component.
+
+**How I resolved it:** Gave the direct instruction above; the AI restructured `ui/` to
+match and documented the convention (named file + barrel `index.ts`, not code directly in
+`index.tsx`) in `ARCHITECTURE.md`.
+
+**How I continued:** Worked through Supabase schema (anonymous auth + RLS, one `scenes`
+row per user) and the GitHub Actions workflow (pnpm-based, lint → typecheck → test →
+build), then asked the AI to research MCP servers relevant to the stack.
+
+---
+
+## Step 7 — MCP research for implementation guidance
+
+**What I was doing:** Looking for Model Context Protocol servers that could give the AI
+better, more current guidance while implementing (React Three Fiber, Zustand, Supabase,
+GitHub, Vercel), rather than relying only on training data.
+
+**What I asked the AI:** "before procced i want to look for mcps for our archeture to
+have better guidence about the implementation, look for mcps for our stack"
+
+**What the AI answered:** Searched the web and returned a prioritized list: pmndrs docs
+MCP (covers React Three Fiber, drei, and Zustand — free, official, one-line install) as
+worth adding immediately; Supabase, Vercel, and GitHub official MCP servers as worth
+adding only when actually implementing those specific steps; a couple of Three.js/GLTF
+MCP servers considered and explicitly skipped as irrelevant (we use primitive geometries,
+no external 3D models).
+
+**Did it work? What was good/bad:** Good — it didn't just list everything it found, it
+filtered by actual relevance to decisions already locked in (e.g. skipped the GLTF
+converter MCP because `DESIGN.md` already ruled out external 3D models).
+
+**How I resolved it:** Asked it to add the pmndrs MCP now and document the rest in
+`ARCHITECTURE.md` for later. No fix needed — worked as expected.
+
+**How I continued:** "let's start scaffolding the project" — before that, the AI did a
+self-review pass over `DESIGN.md`/`ARCHITECTURE.md` and caught two small inconsistencies
+on its own (the Persistence section describing an older, simpler Supabase schema than the
+one actually finalized; a stale "open item" line that hadn't been marked resolved) and
+fixed both before treating the architecture as settled.
+
+---
+
+## Step 8 — Implementation plan and a self-caught bug
+
+**What I was doing:** Turning the settled design/architecture into a concrete,
+task-by-task implementation plan before any code gets written.
+
+**What I asked the AI:** Confirmed proceeding to planning after the self-review; no new
+prompt text beyond "let's start scaffolding the project" from Step 7 — the AI treated
+that as authorization to move into the writing-plans phase.
+
+**What the AI answered:** A 16-task TDD plan (`docs/superpowers/plans/2026-07-17-mini-3d-scene-editor-mvp.md`)
+covering scaffolding, the pure-logic `lib/` layer, the Zustand store, the R3F scene,
+the UI components, CI, and manual end-to-end verification — deliberately scoped to the
+localStorage MVP only, with Supabase and bonus features left for a separate follow-up
+plan.
+
+**What ficou good/bad:** During its own required self-review pass (spec coverage,
+placeholder scan, type consistency), the AI caught a real DRY bug it had just written:
+the store's `movePiece` action reimplemented the rotation-aware footprint-swap logic
+inline instead of reusing the `getFootprint` helper defined earlier in the same plan —
+same behavior, but duplicated logic that could drift out of sync if the footprint rule
+ever changed.
+
+**How I resolved it:** No manual intervention needed — the AI fixed it itself during
+self-review, before presenting the plan as finished, and it never shipped as a bug (the
+plan's tests were also not yet run against this issue since no code had been written
+yet — caught at the design-of-the-plan stage).
+
+**How I continued:** Declined both offered execution paths (subagent-driven or inline)
+— "none, I'll create the github + project" — taking the plan and docs (`DESIGN.md`,
+`ARCHITECTURE.md`, this log, and the implementation plan) to execute manually / continue
+in a fresh repo.
+
+---
+
+## Step 9 — Visual identity: name, logo, style guide
+
+**What I was doing:** Giving the submission a real identity instead of a generic
+"Warehouse Layout Editor" title — a name, a mark, and asset-creation instructions, to
+back up the "UX/UI" diferencial from the job posting.
+
+**What I asked the AI:** "now let's make a style guide, I want to create a logo, marc
+for this projects and also instruction about the criation of the project assets"
+
+**What the AI answered:** Asked one decision at a time (name style → shortlisted
+"Snapyard" / "Gridyard" / "Bayline" → I picked Gridyard; logo type → symbol+wordmark),
+then designed the mark itself: a blueprint grid with one cell filled — a literal
+reference to the snap-to-grid mechanic, reusing the app's own selection-highlight blue
+(`#2f6fed`) rather than inventing a new brand color. It rendered two SVG variants, the
+full palette (brand colors + the four piece colors already fixed in `DESIGN.md`),
+typography choices, and concrete asset-export commands as a previewable page rather than
+describing a logo in text.
+
+**Did it work? What was good/bad:** Worked well on the first pass — I approved it as-is
+("sounds right") with no corrections needed.
+
+**How I continued:** Had it write the approved identity into `STYLE_GUIDE.md`, save the
+two source SVGs to `assets/brand/`, then asked it to update the implementation plan so
+Task 14 actually uses the new name/mark instead of drifting out of sync with the rest of
+the docs — it added steps to copy the SVGs into `public/`, set the page `<title>` to
+"Gridyard", and wire the SVG favicon, renumbering the remaining steps in that task.
+
+---
+
+<!-- Next entries: repo/GitHub project creation, scaffolding execution, drag-and-drop
+implementation, collision logic, snap-to-grid, measurement panel, localStorage
+persistence, Supabase follow-up. Entries from Antigravity to be added as it's used. -->

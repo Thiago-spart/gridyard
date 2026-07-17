@@ -1,0 +1,29 @@
+# Company materials — challenge brief and job posting, not for redistribution
+Teste_Tecnico_Dev_InLab_ENVIAR_5dias.pdf
+jb_Innovation_Lab.pdf
+
+# Node / Vite (pre-added ahead of scaffolding)
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# Env
+.env
+.env.local
+.env.*.local
+
+# Editor
+.vscode/*
+!.vscode/extensions.json
+.idea
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
