@@ -1,0 +1,54 @@
+@import "tailwindcss";
+
+:root {
+  --gy-paper: #f7f6f2;
+  --gy-paper-raised: #ffffff;
+  --gy-ink: #2a2a28;
+  --gy-ink-soft: #6b6a63;
+  --gy-line: #d8d6cd;
+  --gy-grid: #9a988e;
+  --gy-accent: #2f6fed;
+  --gy-accent-ink: #ffffff;
+  --gy-pallet: #c8a165;
+  --gy-shelf: #6b8ca6;
+  --gy-crate: #e08a3c;
+  --gy-workstation: #4a4a52;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --gy-paper: #1c1c1a;
+    --gy-paper-raised: #242422;
+    --gy-ink: #f0efe9;
+    --gy-ink-soft: #a6a49b;
+    --gy-line: #3a3935;
+    --gy-grid: #5a584f;
+    --gy-accent: #5b8bff;
+    --gy-accent-ink: #0d1526;
+  }
+}
+
+@theme {
+  --color-paper: var(--gy-paper);
+  --color-paper-raised: var(--gy-paper-raised);
+  --color-ink: var(--gy-ink);
+  --color-ink-soft: var(--gy-ink-soft);
+  --color-line: var(--gy-line);
+  --color-grid: var(--gy-grid);
+  --color-accent: var(--gy-accent);
+  --color-accent-ink: var(--gy-accent-ink);
+  --color-pallet: var(--gy-pallet);
+  --color-shelf: var(--gy-shelf);
+  --color-crate: var(--gy-crate);
+  --color-workstation: var(--gy-workstation);
+
+  --font-mono-brand: ui-monospace, "SF Mono", "Cascadia Mono", "Roboto Mono", "JetBrains Mono", monospace;
+  --font-sans-brand: -apple-system, BlinkMacSystemFont, "Segoe UI", ui-sans-serif, sans-serif;
+}
+
+body {
+  margin: 0;
+  background-color: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans-brand);
+}

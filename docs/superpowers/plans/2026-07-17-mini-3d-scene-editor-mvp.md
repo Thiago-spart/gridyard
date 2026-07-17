@@ -67,15 +67,23 @@ pnpm add three @react-three/fiber @react-three/drei zustand
 pnpm add -D vitest jsdom @testing-library/react @testing-library/jest-dom @types/three
 ```
 
-- [ ] **Step 4: Add the Vitest config block to `vite.config.ts`**
+- [ ] **Step 4: Install Tailwind CSS**
+
+Tailwind v4 is CSS-first — no `tailwind.config.js`, just the Vite plugin:
+```bash
+pnpm add -D tailwindcss @tailwindcss/vite
+```
+
+- [ ] **Step 5: Add the Vitest config block and Tailwind plugin to `vite.config.ts`**
 
 ```ts
 /// <reference types="vitest/config" />
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), tailwindcss()],
   test: {
     environment: 'jsdom',
     setupFiles: './src/test-setup.ts',
@@ -83,14 +91,80 @@ export default defineConfig({
 })
 ```
 
-- [ ] **Step 5: Create the test setup file**
+- [ ] **Step 6: Replace `src/index.css` with the Tailwind import and brand tokens**
+
+Maps every color/font from `STYLE_GUIDE.md` to a real Tailwind utility (`bg-paper`,
+`text-ink`, `text-accent`, `bg-pallet`/`bg-shelf`/`bg-crate`/`bg-workstation`,
+`font-mono-brand`, `font-sans-brand`) via the `@theme` block — see `ARCHITECTURE.md`'s
+Styling section for why. Dark mode swaps automatically through the CSS variable
+indirection, no `dark:` variant needed per element.
+
+Replace `src/index.css`:
+```css
+@import "tailwindcss";
+
+:root {
+  --gy-paper: #f7f6f2;
+  --gy-paper-raised: #ffffff;
+  --gy-ink: #2a2a28;
+  --gy-ink-soft: #6b6a63;
+  --gy-line: #d8d6cd;
+  --gy-grid: #9a988e;
+  --gy-accent: #2f6fed;
+  --gy-accent-ink: #ffffff;
+  --gy-pallet: #c8a165;
+  --gy-shelf: #6b8ca6;
+  --gy-crate: #e08a3c;
+  --gy-workstation: #4a4a52;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --gy-paper: #1c1c1a;
+    --gy-paper-raised: #242422;
+    --gy-ink: #f0efe9;
+    --gy-ink-soft: #a6a49b;
+    --gy-line: #3a3935;
+    --gy-grid: #5a584f;
+    --gy-accent: #5b8bff;
+    --gy-accent-ink: #0d1526;
+  }
+}
+
+@theme {
+  --color-paper: var(--gy-paper);
+  --color-paper-raised: var(--gy-paper-raised);
+  --color-ink: var(--gy-ink);
+  --color-ink-soft: var(--gy-ink-soft);
+  --color-line: var(--gy-line);
+  --color-grid: var(--gy-grid);
+  --color-accent: var(--gy-accent);
+  --color-accent-ink: var(--gy-accent-ink);
+  --color-pallet: var(--gy-pallet);
+  --color-shelf: var(--gy-shelf);
+  --color-crate: var(--gy-crate);
+  --color-workstation: var(--gy-workstation);
+
+  --font-mono-brand: ui-monospace, "SF Mono", "Cascadia Mono", "Roboto Mono", "JetBrains Mono", monospace;
+  --font-sans-brand: -apple-system, BlinkMacSystemFont, "Segoe UI", ui-sans-serif, sans-serif;
+}
+
+body {
+  margin: 0;
+  background-color: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans-brand);
+}
+```
+
+- [ ] **Step 7: Create the test setup file**
 
 Create `src/test-setup.ts`:
 ```ts
 import '@testing-library/jest-dom/vitest';
 ```
 
-- [ ] **Step 6: Add `lint`, `typecheck`, and `test` scripts to `package.json`**
+- [ ] **Step 8: Add `lint`, `typecheck`, and `test` scripts to `package.json`**
 
 The template already provides `dev`, `build`, `preview`. Add these three to the
 `"scripts"` object:
@@ -100,25 +174,55 @@ The template already provides `dev`, `build`, `preview`. Add these three to the
 "test": "vitest run"
 ```
 
-- [ ] **Step 7: Create the empty folder skeleton**
+- [ ] **Step 9: Strip the Vite/React starter boilerplate**
+
+Remove the template's demo content so `src/` is a clean base for the upcoming tasks:
+```bash
+rm -rf src/assets
+rm -f src/App.css public/favicon.svg public/icons.svg
+```
+Replace `src/App.tsx` with a minimal placeholder (later replaced for real in Task 14):
+```tsx
+function App() {
+  return (
+    <main className="flex min-h-screen items-center justify-center bg-paper text-ink">
+      <h1 className="font-mono-brand text-3xl font-bold tracking-tight">Gridyard</h1>
+    </main>
+  )
+}
+
+export default App
+```
+Copy the brand SVGs and update `index.html`'s title/favicon (source files written by
+`STYLE_GUIDE.md`):
+```bash
+cp assets/brand/logo.svg public/logo.svg
+cp assets/brand/logo-mark.svg public/logo-mark.svg
+```
+```html
+<title>Gridyard</title>
+<link rel="icon" type="image/svg+xml" href="/logo-mark.svg" />
+```
+
+- [ ] **Step 10: Create the empty folder skeleton**
 
 ```bash
 mkdir -p src/lib src/persistence src/store src/scene src/hooks src/types
 mkdir -p src/ui/MeasurementPanel src/ui/Legend src/ui/RotateButton src/ui/ResponsiveLayout
 ```
 
-- [ ] **Step 8: Verify the scaffold builds and lints clean**
+- [ ] **Step 11: Verify the scaffold builds and lints clean**
 
 ```bash
 pnpm typecheck && pnpm lint && pnpm build
 ```
 Expected: all three commands exit 0. `pnpm build` produces a `dist/` folder.
 
-- [ ] **Step 9: Commit**
+- [ ] **Step 12: Commit**
 
 ```bash
 git add -A
-git commit -m "chore: scaffold Vite/React/TS project with Vitest and folder skeleton"
+git commit -m "chore: scaffold Vite/React/TS project with Tailwind, Vitest, and folder skeleton"
 ```
 
 ---
@@ -966,7 +1070,9 @@ export function Piece({ piece, dragPoint, onDragStart }: PieceProps) {
       </mesh>
       {isSelected && (
         <Html position={[0, 0.6, 0]} center>
-          <div className="piece-label">{def.label}</div>
+          <div className="whitespace-nowrap rounded bg-paper-raised px-1.5 py-0.5 text-xs text-ink shadow-sm">
+            {def.label}
+          </div>
         </Html>
       )}
     </group>
@@ -1118,6 +1224,11 @@ git commit -m "feat: add Scene with locked orthographic top-down camera"
 - Produces: `<Legend />`, `<MeasurementPanel />`, `<RotateButton />` — consumed by
   `App.tsx` (Task 14).
 
+Styling is Tailwind utility classes directly in JSX (see `ARCHITECTURE.md`'s Styling
+section) — `bg-accent`/`text-ink`/etc. resolve to the `STYLE_GUIDE.md` palette via the
+`@theme` tokens defined in `src/index.css` (added in Task 1). No per-component `.css`
+file for any of these three.
+
 - [ ] **Step 1: Write the failing Legend test**
 
 Create `src/ui/Legend/Legend.test.tsx`:
@@ -1150,10 +1261,10 @@ import { PIECE_DEFS } from '../../lib/pieces';
 
 export function Legend() {
   return (
-    <ul className="legend">
+    <ul className="flex flex-col gap-1 text-sm text-ink">
       {Object.values(PIECE_DEFS).map((def) => (
-        <li key={def.type}>
-          <span className="legend-swatch" style={{ backgroundColor: def.color }} />
+        <li key={def.type} className="flex items-center gap-2">
+          <span className="inline-block h-3 w-3 rounded-sm" style={{ backgroundColor: def.color }} />
           {def.label}
         </li>
       ))}
@@ -1227,12 +1338,12 @@ export function MeasurementPanel() {
     .filter((p): p is NonNullable<typeof p> => p !== undefined);
 
   if (selected.length === 0) {
-    return <div className="measurement-panel">Select a piece to see its size.</div>;
+    return <div className="text-sm text-ink">Select a piece to see its size.</div>;
   }
   if (selected.length === 1) {
-    return <div className="measurement-panel">Size: {formatSize(selected[0])}</div>;
+    return <div className="text-sm text-ink">Size: {formatSize(selected[0])}</div>;
   }
-  return <div className="measurement-panel">Distance: {formatDistance(selected[0], selected[1])}</div>;
+  return <div className="text-sm text-ink">Distance: {formatDistance(selected[0], selected[1])}</div>;
 }
 ```
 
@@ -1299,7 +1410,11 @@ export function RotateButton() {
   if (selectedIds.length !== 1) return null;
 
   return (
-    <button type="button" className="rotate-button" onClick={() => rotatePiece(selectedIds[0])}>
+    <button
+      type="button"
+      onClick={() => rotatePiece(selectedIds[0])}
+      className="cursor-pointer self-start rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-ink"
+    >
       Rotate 90°
     </button>
   );
@@ -1329,7 +1444,6 @@ git commit -m "feat: add Legend, MeasurementPanel, and RotateButton UI component
 
 **Files:**
 - Create: `src/ui/ResponsiveLayout/ResponsiveLayout.tsx`,
-  `src/ui/ResponsiveLayout/ResponsiveLayout.css`,
   `src/ui/ResponsiveLayout/ResponsiveLayout.test.tsx`, `src/ui/ResponsiveLayout/index.ts`
 
 **Interfaces:**
@@ -1359,50 +1473,14 @@ describe('ResponsiveLayout', () => {
 Run: `pnpm vitest run src/ui/ResponsiveLayout/ResponsiveLayout.test.tsx`
 Expected: FAIL — `./ResponsiveLayout` not found.
 
-- [ ] **Step 3: Implement the CSS**
+- [ ] **Step 3: Implement the component**
 
-Create `src/ui/ResponsiveLayout/ResponsiveLayout.css`:
-```css
-.responsive-layout {
-  display: flex;
-  flex-direction: row;
-  height: 100vh;
-  width: 100vw;
-}
-
-.responsive-layout__scene {
-  flex: 1;
-  min-width: 0;
-}
-
-.responsive-layout__panel {
-  width: 280px;
-  overflow-y: auto;
-  padding: 12px;
-  box-sizing: border-box;
-}
-
-@media (max-width: 768px) {
-  .responsive-layout {
-    flex-direction: column;
-  }
-  .responsive-layout__scene {
-    flex: 1;
-    min-height: 0;
-  }
-  .responsive-layout__panel {
-    width: 100%;
-    max-height: 40vh;
-  }
-}
-```
-
-- [ ] **Step 4: Implement the component**
+Tailwind's default `md` breakpoint (768px) matches the mobile/desktop split from
+`DESIGN.md`: column layout (bottom sheet) below it, row layout (sidebar) at/above it.
 
 Create `src/ui/ResponsiveLayout/ResponsiveLayout.tsx`:
 ```tsx
 import type { ReactNode } from 'react';
-import './ResponsiveLayout.css';
 
 interface ResponsiveLayoutProps {
   scene: ReactNode;
@@ -1411,9 +1489,11 @@ interface ResponsiveLayoutProps {
 
 export function ResponsiveLayout({ scene, panel }: ResponsiveLayoutProps) {
   return (
-    <div className="responsive-layout">
-      <div className="responsive-layout__scene">{scene}</div>
-      <div className="responsive-layout__panel">{panel}</div>
+    <div className="flex h-screen w-screen flex-col md:flex-row">
+      <div className="min-h-0 flex-1">{scene}</div>
+      <div className="max-h-[40vh] w-full overflow-y-auto bg-paper-raised p-3 md:max-h-none md:w-[280px]">
+        {panel}
+      </div>
     </div>
   );
 }
@@ -1424,12 +1504,12 @@ Create `src/ui/ResponsiveLayout/index.ts`:
 export * from './ResponsiveLayout';
 ```
 
-- [ ] **Step 5: Run test to verify it passes**
+- [ ] **Step 4: Run test to verify it passes**
 
 Run: `pnpm vitest run src/ui/ResponsiveLayout/ResponsiveLayout.test.tsx`
 Expected: PASS (1 test)
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 5: Commit**
 
 ```bash
 git add src/ui/ResponsiveLayout
@@ -1521,11 +1601,13 @@ git commit -m "feat: add R-to-rotate and Escape-to-clear keyboard shortcuts"
 ### Task 14: `App.tsx` wiring
 
 **Files:**
-- Modify: `src/App.tsx` (replace template content), `src/App.css` (replace template
-  content), `src/main.tsx` (verify it still points at `App`), `index.html` (set title,
-  wire favicon).
+- Modify: `src/App.tsx` (replace template content), `src/main.tsx` (verify it still
+  points at `App`), `index.html` (set title, wire favicon).
 - Create: `public/logo.svg`, `public/logo-mark.svg` (copied from `assets/brand/`, see
   `STYLE_GUIDE.md`).
+
+No `src/App.css` — styling is Tailwind utility classes (see `ARCHITECTURE.md`'s Styling
+section, added in Task 1).
 
 **Interfaces:**
 - Consumes: `Scene` (Task 10), `Legend`/`MeasurementPanel`/`RotateButton` (Task 11),
@@ -1543,7 +1625,6 @@ import { RotateButton } from './ui/RotateButton';
 import { ResponsiveLayout } from './ui/ResponsiveLayout';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useSceneStore } from './store/sceneStore';
-import './App.css';
 
 export function App() {
   useKeyboardShortcuts();
@@ -1564,7 +1645,7 @@ export function App() {
     <ResponsiveLayout
       scene={<Scene />}
       panel={
-        <div className="panel-stack">
+        <div className="flex flex-col gap-3">
           <Legend />
           <MeasurementPanel />
           <RotateButton />
@@ -1579,52 +1660,7 @@ Loading only runs once on mount; saving runs on every `pieces` change — this
 auto-save/auto-load is what satisfies the "save and reload" requirement without needing
 an explicit save button.
 
-- [ ] **Step 2: Replace `src/App.css`**
-
-```css
-.panel-stack {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.legend {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.legend-swatch {
-  display: inline-block;
-  width: 12px;
-  height: 12px;
-  margin-right: 6px;
-  border-radius: 2px;
-}
-
-.measurement-panel {
-  font-size: 14px;
-}
-
-.rotate-button {
-  align-self: flex-start;
-  padding: 8px 16px;
-  cursor: pointer;
-}
-
-.piece-label {
-  background: white;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 12px;
-  white-space: nowrap;
-}
-```
-
-- [ ] **Step 3: Confirm `src/main.tsx` imports `App` as a named export**
+- [ ] **Step 2: Confirm `src/main.tsx` imports `App` as a named export**
 
 `src/main.tsx` (Vite's template default uses `import App from './App.tsx'` with a
 default export — since `App.tsx` now uses a named export, update the import):
@@ -1641,17 +1677,15 @@ createRoot(document.getElementById('root')!).render(
 );
 ```
 
-- [ ] **Step 4: Copy the brand SVGs into `public/`**
+- [ ] **Step 3: Confirm the brand SVGs and favicon/title are in place**
 
-Copy the two source files from `assets/brand/` (written in `STYLE_GUIDE.md`):
+If Task 1 already did this (it does, per the current scaffold), this is just a check —
+otherwise copy the two source files from `assets/brand/` (written in `STYLE_GUIDE.md`):
 ```bash
 cp assets/brand/logo.svg public/logo.svg
 cp assets/brand/logo-mark.svg public/logo-mark.svg
 ```
-
-- [ ] **Step 5: Set the page title and favicon in `index.html`**
-
-Update the `<head>` — replace the Vite template's default title and favicon link:
+And confirm `index.html`'s `<head>` has:
 ```html
 <title>Gridyard</title>
 <link rel="icon" type="image/svg+xml" href="/logo-mark.svg" />
@@ -1660,7 +1694,7 @@ Update the `<head>` — replace the Vite template's default title and favicon li
 instructions are optional polish — add them later if there's time; the SVG favicon
 above is sufficient for all evergreen browsers.)
 
-- [ ] **Step 6: Manual verification — run the dev server**
+- [ ] **Step 4: Manual verification — run the dev server**
 
 Run: `pnpm dev`
 
@@ -1675,11 +1709,11 @@ Open the printed local URL and verify:
 - Selecting a second piece shows the distance in the measurement panel
 - Reloading the browser tab restores the last saved layout
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 5: Commit**
 
 ```bash
-git add src/App.tsx src/App.css src/main.tsx index.html public/logo.svg public/logo-mark.svg
-git commit -m "feat: wire scene, panels, persistence, and Gridyard branding into the app shell"
+git add src/App.tsx src/main.tsx index.html public/logo.svg public/logo-mark.svg
+git commit -m "feat: wire scene, panels, and persistence into the app shell"
 ```
 
 ---
