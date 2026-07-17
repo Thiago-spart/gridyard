@@ -20,9 +20,56 @@ From `jb_Innovation_Lab.pdf`:
 
 - **Vite + React + TypeScript** — app shell
 - **React Three Fiber + drei** — 3D rendering
+- **Tailwind CSS v4** — styling for `ui/` components (see Styling section below)
 - **Zustand** — scene state (piece list, selection, view mode)
 - **localStorage → Supabase** — persistence, staged (see `DESIGN.md`)
 - **Vercel** — deployment
+
+## Styling
+
+**Tailwind CSS v4**, via `@tailwindcss/vite` (no PostCSS config, no `tailwind.config.js`
+— v4 is CSS-first). Considered against shadcn/ui and plain CSS + a tokens file:
+shadcn/ui was rejected because the actual `ui/` surface (legend, measurement panel,
+rotate button, layout wrapper) has no complex interactive primitives — no dialogs,
+dropdowns, or selects — so the Radix-primitive setup cost buys nothing yet; revisit only
+if a bonus feature (e.g. a color picker) genuinely needs one.
+
+`STYLE_GUIDE.md`'s palette and type stacks are wired in as real tokens, not just
+documented values — defined in `src/index.css`:
+
+```css
+@import "tailwindcss";
+
+:root {
+  --gy-paper: #f7f6f2;
+  /* ...full palette from STYLE_GUIDE.md... */
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --gy-paper: #1c1c1a;
+    /* ...dark equivalents... */
+  }
+}
+
+@theme {
+  --color-paper: var(--gy-paper);
+  --color-accent: var(--gy-accent);
+  /* ...maps every --gy-* token to a Tailwind utility... */
+  --font-mono-brand: ui-monospace, "SF Mono", "Cascadia Mono", "Roboto Mono", monospace;
+  --font-sans-brand: -apple-system, BlinkMacSystemFont, "Segoe UI", ui-sans-serif, sans-serif;
+}
+```
+
+This makes `bg-paper`, `text-ink`, `text-accent`, `bg-pallet`/`bg-shelf`/`bg-crate`/
+`bg-workstation`, and `font-mono-brand`/`font-sans-brand` real Tailwind utility classes
+— the dark-mode swap happens automatically via the CSS variable indirection, no `dark:`
+variant needed on every element.
+
+`ui/` components use Tailwind utility classes directly in JSX — no per-component `.css`
+file in the `ComponentName/` folder shape (tsx + test + stories + index only, per the
+Folder structure section below). `scene/` (R3F) continues to use inline Three.js
+props/materials, not CSS, since it's WebGL — unaffected by this decision.
 
 ## Tooling & testing strategy
 
