@@ -39,8 +39,8 @@ export function Piece({ piece, dragPoint, onDragStart }: PieceProps) {
         <meshStandardMaterial color={isSelected ? '#2f6fed' : def.color} />
       </mesh>
       {isSelected && (
-        <Html position={[0, 0.6, 0]} center>
-          <div className="pointer-events-none whitespace-nowrap rounded bg-paper-raised px-1.5 py-0.5 text-xs text-ink shadow-sm">
+        <Html position={[0, 0.6, 0]} center wrapperClass="pointer-events-none">
+          <div className="whitespace-nowrap rounded bg-paper-raised px-1.5 py-0.5 text-xs text-ink shadow-sm">
             {def.label}
           </div>
         </Html>
