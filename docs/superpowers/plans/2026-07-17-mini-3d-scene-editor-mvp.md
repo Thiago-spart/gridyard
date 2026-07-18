@@ -1788,33 +1788,33 @@ ready but inactive until then.
 
 **Interfaces:** none.
 
-- [ ] **Step 1: Verify the 7 challenge requirements against the running app**
+- [x] **Step 1: Verify the 7 challenge requirements against the running app**
 
 Run `pnpm dev` and check off each, per `Teste_Tecnico_Dev_InLab_ENVIAR_5dias.pdf`:
-- [ ] Fixed 10×8 board, top-down, orthographic (no perspective distortion when panning)
-- [ ] 4 distinct pieces, each occupying its own space
-- [ ] Drag-to-move works with the mouse
-- [ ] Overlapping drop is rejected (piece snaps back, never overlaps another)
-- [ ] Pieces snap to the grid on release
-- [ ] Measurement panel shows piece size (1 selected) and distance (2 selected)
-- [ ] Reloading the page restores the saved layout
+- [x] Fixed 10×8 board, top-down, orthographic (no perspective distortion when panning)
+- [x] 4 distinct pieces, each occupying its own space
+- [x] Drag-to-move works with the mouse
+- [x] Overlapping drop is rejected (piece snaps back, never overlaps another)
+- [x] Pieces snap to the grid on release
+- [x] Measurement panel shows piece size (1 selected) and distance (2 selected)
+- [x] Reloading the page restores the saved layout
 
-- [ ] **Step 2: Verify mobile-first interaction (touch)**
+- [x] **Step 2: Verify mobile-first interaction (touch)**
 
 In the browser devtools, enable device/touch emulation (or test on an actual phone) and
 verify:
-- [ ] Tap selects a piece, tap-drag moves it
-- [ ] Tapping a second piece adds it to selection (distance shows)
-- [ ] The on-screen rotate button rotates the selected piece
-- [ ] Pinch zooms the camera; dragging empty board space pans it
-- [ ] The panel appears as a bottom sheet, not a sidebar, on a narrow viewport
+- [x] Tap selects a piece, tap-drag moves it
+- [x] Tapping a second piece adds it to selection (distance shows)
+- [x] The on-screen rotate button rotates the selected piece
+- [x] Pinch zooms the camera; dragging empty board space pans it
+- [x] The panel appears as a bottom sheet, not a sidebar, on a narrow viewport
 
-- [ ] **Step 3: Verify desktop keyboard shortcuts**
+- [x] **Step 3: Verify desktop keyboard shortcuts**
 
-- [ ] Selecting a piece and pressing `R` rotates it
-- [ ] Pressing `Escape` clears the selection
+- [x] Selecting a piece and pressing `R` rotates it
+- [x] Pressing `Escape` clears the selection
 
-- [ ] **Step 4: Record results in `AI_LOG.md`**
+- [x] **Step 4: Record results in `AI_LOG.md`**
 
 Append an entry to `AI_LOG.md` (following the established template) describing the
 scaffolding/implementation pass: what was built, what worked first try, what needed a
