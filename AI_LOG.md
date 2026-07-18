@@ -418,6 +418,48 @@ that one's mine to run rather than the AI's.
 
 ---
 
-<!-- Next entries: Task 16 manual verification results, Supabase follow-up plan,
-bonus features (perspective toggle, color swap, performance pass). Entries from
-Antigravity to be added as it's used. -->
+## Step 15 — Task 16: end-to-end manual verification, and a drag bug found live
+
+**What I was doing:** Running `pnpm dev` and going through the Task 16 checklist by
+hand — the 7 challenge requirements, then touch interaction, then desktop keyboard
+shortcuts — the one task in the plan that needed a real browser instead of the AI.
+
+**What I asked the AI:** Nothing at first — checked the requirements myself. Selecting a
+piece and dragging it broke: the drag would stutter, freeze, or the piece would snap back
+to its last committed position instead of following the cursor. Reported it directly.
+
+**What the AI answered:** Root-caused it before touching code: the selected-piece label
+is a drei `<Html>` element — a real DOM node overlaid on the canvas at the piece's screen
+position, not part of the Three.js scene graph — sitting exactly where the cursor is
+during a drag. The browser's native hit-testing was routing pointer events to that div
+instead of through to the canvas, where R3F's raycasting needed them to reach
+`DragPlane`. First fix set `pointer-events-none` on the label's inner content div, which
+turned out to only mask the symptom (piece snapping back on pointer-up) rather than fix
+it — the label's real outer wrapper (drei's own container element, per
+`node_modules/@react-three/drei/web/Html.js`) still had default pointer-events and was
+still catching the hit, firing a native `pointerleave` on the canvas that R3F converts to
+`onPointerLeave` on `DragPlane`, which was wired to `onDragEnd()` — prematurely
+committing the drag. Second fix used `Html`'s `wrapperClass` prop to target that actual
+outer element instead.
+
+**Did it work? What was good/bad:** The first fix was a plausible-looking miss — it
+changed the symptom's shape without removing it, which is what led to actually reading
+drei's source instead of guessing again. The second fix was confirmed clean by manual
+retest: dragging now tracks the cursor smoothly and commits correctly with the label
+visible throughout.
+
+**How I resolved it:** Shipped as two commits on `fix/piece-label-pointer-events`, PR
+#15, merged into `dev`.
+
+**How I continued:** Re-ran the full Task 16 checklist after the fix — all 7 challenge
+requirements, mobile/touch interaction (tap-select, tap-drag, second-piece distance,
+rotate button, pinch-zoom/pan, bottom-sheet panel on narrow viewports), and the desktop
+`R`/`Escape` shortcuts — all clean, no further issues. That closes out the MVP
+implementation plan; next up is scoping the Supabase persistence follow-up and the
+stretch tooling (Storybook, Cypress) that the plan deliberately deferred.
+
+---
+
+<!-- Next entries: Supabase follow-up plan, bonus features (perspective toggle, color
+swap, performance pass), Storybook/Cypress stretch tooling. Entries from Antigravity to
+be added as it's used. -->
