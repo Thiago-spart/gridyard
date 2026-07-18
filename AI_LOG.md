@@ -270,6 +270,154 @@ the docs — it added steps to copy the SVGs into `public/`, set the page `<titl
 
 ---
 
-<!-- Next entries: repo/GitHub project creation, scaffolding execution, drag-and-drop
-implementation, collision logic, snap-to-grid, measurement panel, localStorage
-persistence, Supabase follow-up. Entries from Antigravity to be added as it's used. -->
+## Step 10 — Repo setup and a workflow correction mid-scaffold
+
+**What I was doing:** Creating the actual GitHub repo and scaffolding the Vite app,
+after the design/architecture/branding work was all settled.
+
+**What I asked the AI:** "do you have the skill to create a github repository in my
+personal account?" → confirmed `gh` was authenticated → "let's create the vite app" →
+mid-scaffold, while the AI was mid-tool-call verifying the build: "about the way we will
+implement the commits and github branches, for changes we will create a pr and put the
+related commits in this branch, also the name convention will be feat, chore, fix and
+this partten, before posting the changes i have to make a approval(this give me time to
+run and test before it's up in our codebase)"
+
+**What the AI answered:** Before that correction, it had been about to work directly on
+whatever branch was checked out. It acknowledged the new rule immediately, created a
+`feat/scaffold-vite-app` branch retroactively for the scaffold work already in progress,
+and committed locally without pushing.
+
+**Did it work? What was good/bad:** The correction landed cleanly and stuck for the rest
+of the session — every task after this point followed: branch off `dev` → implement →
+commit locally → stop and report → wait for "do the pr" → push + open PR → wait for
+"merged" → sync `dev`, delete the branch, move to the next task. I also asked it to save
+this as a persistent memory so future sessions don't need the correction repeated.
+
+**How I continued:** Also asked it to look for MCP servers relevant to the stack before
+continuing — it found and added the official pmndrs docs MCP (covers React Three
+Fiber/drei/Zustand), and listed Supabase/Vercel/GitHub official MCPs to add when those
+specific steps are actually reached, skipping a couple of irrelevant ones (GLTF
+converters — the project uses primitive geometries only, no 3D model imports).
+
+---
+
+## Step 11 — Styling library and the `lib/`→`store/` TDD chain (Tasks 2-7)
+
+**What I was doing:** Realized mid-scaffold that no styling approach had ever actually
+been decided — just plain CSS by default — and separately, working through the plan's
+pure-logic layer and Zustand store task by task.
+
+**What I asked the AI:** "for the styling, what libraries are we using, or intend to
+use?" → it recommended plain CSS + a tokens file over Tailwind or CSS Modules, framed as
+a real open decision rather than assuming — "2 sounds right, for this project makes
+scence to use shadc ui ?" (picking Tailwind, then asking about shadcn/ui). Then, for each
+of Tasks 2 through 7: "let's start Task 2" / "show me the description of task 3" / "yes,
+start it" / "do the pr" / "merged, let's start Task N" — repeated per task.
+
+**What the AI answered:** Recommended against shadcn/ui — the actual `ui/` surface
+(legend, measurement panel, one button) has no complex interactive primitives to justify
+the Radix setup cost, revisit only if a bonus feature needs a real `<Select>` or similar.
+Wired Tailwind v4 with the `STYLE_GUIDE.md` palette as real `@theme` tokens, then updated
+`ARCHITECTURE.md` and the already-written plan's UI tasks to match, since they'd been
+written assuming plain CSS. For Tasks 2-7 (`lib/pieces.ts` through the Zustand store),
+each ran the plan's exact TDD steps: write the failing test, confirm it fails, implement,
+confirm it passes, typecheck, lint, commit.
+
+**Did it work? What was good/bad:** Every one of Tasks 2-7 passed on the first
+implementation attempt with no bugs — a direct result of the plan already containing
+complete, pre-reviewed code for each step rather than prose descriptions. Nothing to
+correct; genuinely smooth.
+
+**How I continued:** One PR per task, merged individually via GitHub, with the AI syncing
+`dev` and deleting the merged branch before starting the next task each time.
+
+---
+
+## Step 12 — 3D scene components (Tasks 8-10)
+
+**What I was doing:** Moving into the React Three Fiber layer — the board, drag-plane,
+draggable pieces, and the camera/canvas wiring — which the testing strategy deliberately
+excludes from automated tests (WebGL, verified manually instead).
+
+**What I asked the AI:** "let's start Task 8" → "go to task 10" (skipping a separate PR
+step for Task 9 since Task 10 directly imports Task 9's `Pieces` component, which wasn't
+merged yet).
+
+**What the AI answered:** For Task 8 (`Board`/`DragPlane`), it flagged a specific
+technical subtlety in its own summary: the drag plane needs `transparent opacity={0}`
+rather than `visible={false}`, since some three.js versions exclude invisible objects
+from raycasting entirely — the drag would silently stop working. For Task 10 it combined
+Task 9 and 10 onto the same branch/PR rather than forcing an artificial branch split,
+since Scene has a hard dependency on Pieces.
+
+**Did it work? What was good/bad:** Correct on the first pass — typecheck/lint clean each
+time — but genuinely unverified visually until Task 14, since nothing was wired into
+`App.tsx` yet. Worth being honest that "passes typecheck" isn't the same as "works,"
+which is exactly what Task 16 (manual verification) exists to check.
+
+**How I continued:** Asked for one combined PR for Tasks 9+10 given the dependency.
+
+---
+
+## Step 13 — Subagent-driven implementation for Tasks 11-14
+
+**What I was doing:** Handing the remaining, more mechanical tasks to subagents instead
+of doing every implementation step in the main session.
+
+**What I asked the AI:** "let's do all tasks till the 14, using subagent, and do the pr
+along the way"
+
+**What the AI answered:** Used Claude's subagent-driven-development process: for Tasks
+11, 12, and 13 (Legend/MeasurementPanel/RotateButton, ResponsiveLayout,
+useKeyboardShortcuts) — all had complete code already written out in the plan, so it
+dispatched fast/cheap Haiku subagents with a narrow brief (just that task's plan section
+plus the exact context needed, not the whole plan or conversation history). For Task 14
+(`App.tsx` wiring — the integration task pulling every prior piece together), it used a
+more capable Sonnet subagent instead, reasoning that wiring multiple files together needs
+real judgment, not transcription.
+
+**Did it work? What was good/bad:** The Task 11 subagent caught a real gap on its own
+that wasn't in its brief at all: `test-setup.ts` was missing `afterEach(cleanup)` from
+`@testing-library/react`, which would have let rendered components leak between tests
+and produce false-positive/negative results — a genuine self-caught fix, not something
+either of us had flagged going in. Every subagent's report was independently re-verified
+(full test suite, typecheck, lint, and for Task 14, a full production build) before
+anything was committed, rather than trusting the subagent's self-report at face value.
+
+**How I resolved it:** No corrections needed — each subagent's diff was reviewed and
+matched its brief exactly, no scope creep beyond the one legitimate test-setup fix.
+
+**How I continued:** One PR per task (four in total for 11-14), each merged individually.
+Confirmed explicitly that Task 14 couldn't start until Tasks 9/10/11/12/13 were all
+merged, since `App.tsx` imports from all of them.
+
+---
+
+## Step 14 — CI workflow and a stale-assumption catch (Task 15)
+
+**What I was doing:** Adding the GitHub Actions workflow, the last piece of tooling from
+`ARCHITECTURE.md`'s testing strategy.
+
+**What I asked the AI:** "merged, keep going" (continuing from Task 14's merge).
+
+**What the AI answered:** Ran the full local quality gate first (lint, typecheck, test,
+build — all green), then wrote the workflow. Caught on its own that the plan's original
+YAML template targeted a branch named `main`, which doesn't exist in this repo — this
+repo uses `master`/`dev` (a decision made earlier in the session) — and corrected the
+trigger branches before committing, rather than shipping a workflow that would silently
+never trigger on this repo's actual branches.
+
+**Did it work? What was good/bad:** Correct catch, no rework needed.
+
+**How I continued:** Opened the PR; the workflow's own `pull_request` trigger should fire
+on that PR itself as a live check that it actually works. Task 16 (manual end-to-end
+verification — running `pnpm dev` and checking off all 7 challenge requirements plus
+mobile/keyboard interaction) is the one remaining task, and needs an actual browser, so
+that one's mine to run rather than the AI's.
+
+---
+
+<!-- Next entries: Task 16 manual verification results, Supabase follow-up plan,
+bonus features (perspective toggle, color swap, performance pass). Entries from
+Antigravity to be added as it's used. -->
