@@ -3,6 +3,7 @@ import { Scene } from './scene/Scene';
 import { MeasurementPanel } from './ui/MeasurementPanel';
 import { Legend } from './ui/Legend';
 import { RotateButton } from './ui/RotateButton';
+import { ColorSwatchPicker } from './ui/ColorSwatchPicker';
 import { ViewToggle } from './ui/ViewToggle';
 import { ResponsiveLayout } from './ui/ResponsiveLayout';
 import { SaveStatus } from './ui/SaveStatus';
@@ -41,6 +42,7 @@ export function App() {
           <Legend />
           <MeasurementPanel />
           <RotateButton />
+          <ColorSwatchPicker />
         </div>
       }
     />
