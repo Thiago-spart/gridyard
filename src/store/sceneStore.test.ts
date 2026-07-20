@@ -367,3 +367,83 @@ describe('addPiece', () => {
     expect(useSceneStore.getState().pieces).toBe(before);
   });
 });
+
+describe('updatePiece', () => {
+  it('updates a fixed-type piece in place when the new size still fits, returning "updated"', () => {
+    const result = useSceneStore
+      .getState()
+      .updatePiece('pallet-1', { width: 1, depth: 1, label: 'My Pallet', color: '#5f9e6f' });
+    expect(result).toBe('updated');
+    const pallet = useSceneStore.getState().pieces.find((p) => p.id === 'pallet-1');
+    expect(pallet?.widthOverride).toBe(1);
+    expect(pallet?.labelOverride).toBe('My Pallet');
+    expect(pallet?.colorOverride).toBe('#5f9e6f');
+    expect(pallet?.gridX).toBe(0);
+    expect(pallet?.gridY).toBe(0);
+  });
+
+  it('returns "conflict" without mutating when the new size would collide with another piece at the current position', () => {
+    const before = useSceneStore.getState().pieces;
+    const result = useSceneStore
+      .getState()
+      .updatePiece('pallet-1', { width: 4, depth: 1, label: 'Pallet', color: '#c8a165' });
+    expect(result).toBe('conflict');
+    expect(useSceneStore.getState().pieces).toBe(before);
+  });
+
+  it('relocates to the first free spot and returns "updated" when reposition is requested and the current position no longer fits', () => {
+    const result = useSceneStore
+      .getState()
+      .updatePiece('pallet-1', { width: 4, depth: 1, label: 'Pallet', color: '#c8a165' }, { reposition: true });
+    expect(result).toBe('updated');
+    const pallet = useSceneStore.getState().pieces.find((p) => p.id === 'pallet-1');
+    expect(pallet?.gridX).toBe(0);
+    expect(pallet?.gridY).toBe(1);
+    expect(pallet?.widthOverride).toBe(4);
+  });
+
+  it('returns "no-space" without mutating when reposition is requested but nothing fits anywhere', () => {
+    useSceneStore.setState({
+      pieces: [
+        { id: 'a', type: 'pallet', gridX: 0, gridY: 0, rotation: 0 },
+        { id: 'filler', type: 'custom', gridX: 1, gridY: 0, rotation: 0, widthOverride: 9, depthOverride: 8 },
+      ],
+    });
+    const before = useSceneStore.getState().pieces;
+    const result = useSceneStore
+      .getState()
+      .updatePiece('a', { width: 2, depth: 1, label: 'A', color: '#c65b4a' }, { reposition: true });
+    expect(result).toBe('no-space');
+    expect(useSceneStore.getState().pieces).toBe(before);
+  });
+
+  it('returns "too-large" without mutating regardless of reposition, when width/depth exceeds the board outright', () => {
+    const before = useSceneStore.getState().pieces;
+    const result = useSceneStore
+      .getState()
+      .updatePiece('pallet-1', { width: 11, depth: 1, label: 'Pallet', color: '#c8a165' }, { reposition: true });
+    expect(result).toBe('too-large');
+    expect(useSceneStore.getState().pieces).toBe(before);
+  });
+});
+
+describe('deletePiece', () => {
+  it('removes the target piece only', () => {
+    useSceneStore.getState().deletePiece('shelf-1');
+    const pieces = useSceneStore.getState().pieces;
+    expect(pieces.find((p) => p.id === 'shelf-1')).toBeUndefined();
+    expect(pieces).toHaveLength(INITIAL_PIECES.length - 1);
+  });
+
+  it('clears selectedIds when the deleted piece was selected', () => {
+    useSceneStore.setState({ selectedIds: ['shelf-1'] });
+    useSceneStore.getState().deletePiece('shelf-1');
+    expect(useSceneStore.getState().selectedIds).toEqual([]);
+  });
+
+  it('leaves selection untouched when the deleted piece was not selected', () => {
+    useSceneStore.setState({ selectedIds: ['crate-1'] });
+    useSceneStore.getState().deletePiece('shelf-1');
+    expect(useSceneStore.getState().selectedIds).toEqual(['crate-1']);
+  });
+});
