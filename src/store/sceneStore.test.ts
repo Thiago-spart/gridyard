@@ -1,12 +1,33 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useSceneStore, INITIAL_PIECES } from './sceneStore';
+import type { PieceInstance } from '../lib/pieces';
+
+const mocks = vi.hoisted(() => ({
+  ensureSession: vi.fn(async () => {}),
+  saveScene: vi.fn(async () => {}),
+  loadScene: vi.fn(async (): Promise<PieceInstance[] | null> => null),
+}));
+
+vi.mock('../persistence', () => ({
+  ensureSession: mocks.ensureSession,
+  saveScene: mocks.saveScene,
+  loadScene: mocks.loadScene,
+}));
 
 function resetStore() {
-  useSceneStore.setState({ pieces: INITIAL_PIECES, selectedIds: [], viewMode: 'top' });
+  useSceneStore.setState({
+    pieces: INITIAL_PIECES,
+    selectedIds: [],
+    viewMode: 'top',
+    saveStatus: 'idle',
+  });
 }
 
 beforeEach(() => {
-  localStorage.clear();
+  vi.clearAllMocks();
+  mocks.ensureSession.mockResolvedValue(undefined);
+  mocks.saveScene.mockResolvedValue(undefined);
+  mocks.loadScene.mockResolvedValue(null);
   resetStore();
 });
 
@@ -40,7 +61,6 @@ describe('movePiece', () => {
   });
 
   it('rejects a move onto an occupied cell and returns false', () => {
-    // shelf-1 occupies gridX 3-4, gridY 0
     const result = useSceneStore.getState().movePiece('pallet-1', 3 * 1.2 + 0.1, 0 * 1.2 + 0.1);
     expect(result).toBe(false);
     const pallet = useSceneStore.getState().pieces.find((p) => p.id === 'pallet-1');
@@ -59,13 +79,45 @@ describe('rotatePiece', () => {
 });
 
 describe('saveScene / loadScene', () => {
-  it('persists the current pieces and restores them', () => {
-    useSceneStore.getState().movePiece('pallet-1', 8 * 1.2 + 0.1, 7 * 1.2 + 0.1);
-    useSceneStore.getState().saveScene();
-    resetStore();
-    useSceneStore.getState().loadScene();
-    const pallet = useSceneStore.getState().pieces.find((p) => p.id === 'pallet-1');
-    expect(pallet?.gridX).toBe(8);
-    expect(pallet?.gridY).toBe(7);
+  it('calls persistSave with the current pieces', async () => {
+    await useSceneStore.getState().saveScene();
+    expect(mocks.saveScene).toHaveBeenCalledWith(useSceneStore.getState().pieces);
+  });
+
+  it('ensures a session then hydrates pieces from the persisted result', async () => {
+    const loaded: PieceInstance[] = [{ id: 'a', type: 'pallet', gridX: 8, gridY: 7, rotation: 0 }];
+    mocks.loadScene.mockResolvedValue(loaded);
+    await useSceneStore.getState().loadScene();
+    expect(mocks.ensureSession).toHaveBeenCalledOnce();
+    expect(useSceneStore.getState().pieces).toEqual(loaded);
+  });
+
+  it('leaves pieces unchanged when nothing was persisted', async () => {
+    await useSceneStore.getState().loadScene();
+    expect(useSceneStore.getState().pieces).toEqual(INITIAL_PIECES);
+  });
+});
+
+describe('saveStatus', () => {
+  it('transitions saving -> saved -> idle around a successful save', async () => {
+    vi.useFakeTimers();
+    const savePromise = useSceneStore.getState().saveScene();
+    expect(useSceneStore.getState().saveStatus).toBe('saving');
+    await savePromise;
+    expect(useSceneStore.getState().saveStatus).toBe('saved');
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(useSceneStore.getState().saveStatus).toBe('idle');
+    vi.useRealTimers();
+  });
+
+  it('transitions saving -> error -> idle when the save fails', async () => {
+    vi.useFakeTimers();
+    mocks.saveScene.mockRejectedValueOnce(new Error('offline'));
+    const savePromise = useSceneStore.getState().saveScene();
+    await savePromise;
+    expect(useSceneStore.getState().saveStatus).toBe('error');
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(useSceneStore.getState().saveStatus).toBe('idle');
+    vi.useRealTimers();
   });
 });

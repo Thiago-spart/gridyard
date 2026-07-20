@@ -2,19 +2,22 @@ import { create } from 'zustand';
 import { getFootprint, type PieceInstance } from '../lib/pieces';
 import { hasCollision } from '../lib/collision';
 import { worldToGrid } from '../lib/grid';
-import { saveScene as persistSave, loadScene as persistLoad } from '../persistence/localStorage';
+import { ensureSession, saveScene as persistSave, loadScene as persistLoad } from '../persistence';
+
+export type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
 
 interface SceneState {
   pieces: PieceInstance[];
   selectedIds: string[];
   viewMode: 'top' | 'perspective';
+  saveStatus: SaveStatus;
   selectPiece: (id: string) => void;
   clearSelection: () => void;
   movePiece: (id: string, worldX: number, worldZ: number) => boolean;
   rotatePiece: (id: string) => void;
   setViewMode: (mode: 'top' | 'perspective') => void;
-  saveScene: () => void;
-  loadScene: () => void;
+  saveScene: () => Promise<void>;
+  loadScene: () => Promise<void>;
 }
 
 export const INITIAL_PIECES: PieceInstance[] = [
@@ -28,6 +31,7 @@ export const useSceneStore = create<SceneState>((set, get) => ({
   pieces: INITIAL_PIECES,
   selectedIds: [],
   viewMode: 'top',
+  saveStatus: 'idle',
 
   selectPiece: (id) => {
     const { selectedIds } = get();
@@ -65,9 +69,20 @@ export const useSceneStore = create<SceneState>((set, get) => ({
 
   setViewMode: (viewMode) => set({ viewMode }),
 
-  saveScene: () => persistSave(get().pieces),
-  loadScene: () => {
-    const loaded = persistLoad();
+  saveScene: async () => {
+    set({ saveStatus: 'saving' });
+    try {
+      await persistSave(get().pieces);
+      set({ saveStatus: 'saved' });
+    } catch {
+      set({ saveStatus: 'error' });
+    }
+    setTimeout(() => set({ saveStatus: 'idle' }), 2000);
+  },
+
+  loadScene: async () => {
+    await ensureSession();
+    const loaded = await persistLoad();
     if (loaded) set({ pieces: loaded, selectedIds: [] });
   },
 }));
