@@ -7,9 +7,31 @@ Currently, two official plugins are available:
 - [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
 - [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
 
-## React Compiler
+## Performance
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Performance work here is deliberately conservative: `DESIGN.md` lists a performance pass
+(instancing/memoization) as the lowest-priority bonus item, and `ARCHITECTURE.md`
+explicitly defers it — "only revisited if it becomes an actual problem," not something
+to build in speculatively. The reasoning:
+
+- **Scene scale is small and fixed.** The challenge spec fixes the scene at 4 piece
+  types, spawned once, with no add/remove UI — draw calls and re-render cost are already
+  trivial at that scale. Instancing (drei's `<Instances>`) would only start paying for
+  itself at dozens of pieces with shared geometry, which isn't this app.
+- **The actual computation lives in `lib/`, not the render loop.** Collision detection,
+  grid snapping, and measurement formatting are pure, framework-free functions (covered
+  by Vitest), not per-frame Three.js work — so render-loop optimization wouldn't target
+  where the logic actually runs.
+- **React Compiler is not enabled.** Its benefit is auto-memoizing complex `react-dom`
+  render trees; the panel components here (`Legend`, `MeasurementPanel`, `SaveStatus`,
+  `RotateButton`, `ViewToggle`) are small and already cheap to re-render, and the 3D
+  content renders through React Three Fiber's own custom reconciler rather than
+  `react-dom`, where the compiler's benefit with this stack is unproven. Adopting it now
+  would add a Babel-plugin + ESLint-plugin dependency to solve a problem that isn't
+  measured. See `AI_LOG.md` Step 17 for the fuller discussion.
+
+If profiling ever surfaces an actual frame-rate or re-render problem, that's the trigger
+to revisit this — not before.
 
 ## Expanding the ESLint configuration
 
