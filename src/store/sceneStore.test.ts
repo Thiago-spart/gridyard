@@ -180,6 +180,9 @@ describe('saveStatus', () => {
     mocks.saveScene.mockImplementationOnce(() => pendingB);
 
     // Call A is invoked first, call B is invoked second, while A is still pending.
+    // B, as the *later-invoked* call, holds the higher generation id, so it is
+    // the one whose idle timer will ultimately be allowed to fire (invocation
+    // order governs the timer — settlement order only governs the status VALUE).
     const callA = useSceneStore.getState().saveScene();
     const callB = useSceneStore.getState().saveScene();
     expect(useSceneStore.getState().saveStatus).toBe('saving');
@@ -190,7 +193,8 @@ describe('saveStatus', () => {
     await callB;
     expect(useSceneStore.getState().saveStatus).toBe('error');
 
-    // A (invoked first) settles later, and its outcome must win.
+    // A (invoked first) settles later, and its outcome must win the displayed
+    // value unconditionally — the status VALUE is always last-settle-wins.
     await vi.advanceTimersByTimeAsync(500);
     resolveA();
     await callA;
@@ -201,17 +205,66 @@ describe('saveStatus', () => {
     await vi.advanceTimersByTimeAsync(1499);
     expect(useSceneStore.getState().saveStatus).toBe('saved');
 
-    // B's stale idle timer fires now (t=2500) but must be a no-op — it must not
-    // reset status to idle ahead of A's own schedule.
+    // B's idle timer fires now (t=2500). Because B was the *last-invoked* call
+    // and nothing has been invoked since, its generation still matches, so it
+    // is allowed to fire and resets status to idle — even though A settled
+    // later and (temporarily) set the displayed value to 'saved'. This is the
+    // documented consequence of gating the timer on invocation order: the
+    // last-invoked call's timer is authoritative, not the last-settled call's.
     await vi.advanceTimersByTimeAsync(1);
-    expect(useSceneStore.getState().saveStatus).toBe('saved');
+    expect(useSceneStore.getState().saveStatus).toBe('idle');
 
-    // Only A's own idle timer, 2000ms after A settled (t=3000), should reset
-    // status to idle — and only once.
+    // A's own idle timer (generation 1) fires at t=3000 but is stale — B's
+    // later invocation already moved the counter past it — so it is a no-op.
     await vi.advanceTimersByTimeAsync(500);
     expect(useSceneStore.getState().saveStatus).toBe('idle');
 
     consoleErrorSpy.mockRestore();
+    vi.useRealTimers();
+  });
+
+  it('does not reset to idle while a later-invoked save is still pending, even after the earlier call settled and its timer would have fired', async () => {
+    vi.useFakeTimers();
+
+    let resolveA!: () => void;
+    const pendingA = new Promise<void>((resolve) => {
+      resolveA = resolve;
+    });
+    let resolveB!: () => void;
+    const pendingB = new Promise<void>((resolve) => {
+      resolveB = resolve;
+    });
+    mocks.saveScene.mockImplementationOnce(() => pendingA);
+    mocks.saveScene.mockImplementationOnce(() => pendingB);
+
+    // A is invoked at t=0 and will settle fast (t=100), scheduling an idle
+    // timer for t=2100. B is invoked shortly after, at t=50, while A is still
+    // pending, and stays pending well past t=2100.
+    const callA = useSceneStore.getState().saveScene();
+    await vi.advanceTimersByTimeAsync(50);
+    const callB = useSceneStore.getState().saveScene();
+
+    await vi.advanceTimersByTimeAsync(50); // t=100: A settles.
+    resolveA();
+    await callA;
+    expect(useSceneStore.getState().saveStatus).toBe('saved');
+
+    // Advance well past A's idle timer (t=2100) while B is still pending.
+    // A's timer must be suppressed because B was invoked after A.
+    await vi.advanceTimersByTimeAsync(2050); // now at t=2150
+    expect(useSceneStore.getState().saveStatus).not.toBe('idle');
+    expect(useSceneStore.getState().saveStatus).toBe('saved');
+
+    // B finally settles at t=3000.
+    await vi.advanceTimersByTimeAsync(850); // now at t=3000
+    resolveB();
+    await callB;
+    expect(useSceneStore.getState().saveStatus).toBe('saved');
+
+    // B's own idle timer fires 2000ms after B settled.
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(useSceneStore.getState().saveStatus).toBe('idle');
+
     vi.useRealTimers();
   });
 });

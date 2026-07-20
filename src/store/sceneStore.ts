@@ -20,12 +20,17 @@ interface SceneState {
   loadScene: () => Promise<void>;
 }
 
-// Tracks save resolution order (not invocation order). Bumped once a call's
-// persistSave settles, right before it decides the resulting status and
-// schedules its own idle-reset timer. Only the timer belonging to whichever
-// call settled *last* will still see its captured value match this counter
-// when it fires, so an earlier-settling call's timer can never clobber a
-// later-settling call's status — regardless of invocation order.
+// Tracks save *invocation* order (not settlement order). Bumped at the start
+// of every saveScene() call, before the await, and the resulting id is
+// captured in that call's closure. A call's idle-reset timer is only allowed
+// to fire if no *newer* call has been invoked since — checked by comparing
+// the captured id against this counter's current value when the timer fires.
+// This deliberately does NOT gate the status VALUE written when a call
+// settles (set({ saveStatus: nextStatus }) stays unconditional — whichever
+// call settles most recently wins the displayed value). It only gates
+// whether a call is allowed to reset the status to 'idle' later, so a call
+// that is superseded by a newer invocation can never wrongly report idle
+// while that newer call may still be in flight.
 let saveGeneration = 0;
 
 export const INITIAL_PIECES: PieceInstance[] = [
@@ -78,6 +83,7 @@ export const useSceneStore = create<SceneState>((set, get) => ({
   setViewMode: (viewMode) => set({ viewMode }),
 
   saveScene: async () => {
+    const generation = ++saveGeneration;
     set({ saveStatus: 'saving' });
     let nextStatus: SaveStatus;
     try {
@@ -87,7 +93,6 @@ export const useSceneStore = create<SceneState>((set, get) => ({
       console.error('Failed to save scene:', error);
       nextStatus = 'error';
     }
-    const generation = ++saveGeneration;
     set({ saveStatus: nextStatus });
     setTimeout(() => {
       if (generation === saveGeneration) set({ saveStatus: 'idle' });
