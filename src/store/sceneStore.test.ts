@@ -333,3 +333,37 @@ describe('saveStatus', () => {
     vi.useRealTimers();
   });
 });
+
+describe('addPiece', () => {
+  it('creates a new custom piece in the first free spot and returns "created"', () => {
+    const result = useSceneStore.getState().addPiece({ width: 1, depth: 1, label: 'Widget', color: '#c65b4a' });
+    expect(result).toBe('created');
+    const pieces = useSceneStore.getState().pieces;
+    expect(pieces).toHaveLength(INITIAL_PIECES.length + 1);
+    const created = pieces[pieces.length - 1];
+    expect(created.type).toBe('custom');
+    expect(created.widthOverride).toBe(1);
+    expect(created.depthOverride).toBe(1);
+    expect(created.labelOverride).toBe('Widget');
+    expect(created.colorOverride).toBe('#c65b4a');
+  });
+
+  it('returns "too-large" without mutating pieces when width exceeds the board', () => {
+    const before = useSceneStore.getState().pieces;
+    const result = useSceneStore.getState().addPiece({ width: 11, depth: 1, label: 'Too Big', color: '#c65b4a' });
+    expect(result).toBe('too-large');
+    expect(useSceneStore.getState().pieces).toBe(before);
+  });
+
+  it('returns "no-space" without mutating pieces when the board has no free area of that size', () => {
+    useSceneStore.setState({
+      pieces: [
+        { id: 'filler', type: 'custom', gridX: 0, gridY: 0, rotation: 0, widthOverride: 10, depthOverride: 8 },
+      ],
+    });
+    const before = useSceneStore.getState().pieces;
+    const result = useSceneStore.getState().addPiece({ width: 1, depth: 1, label: 'No Room', color: '#c65b4a' });
+    expect(result).toBe('no-space');
+    expect(useSceneStore.getState().pieces).toBe(before);
+  });
+});

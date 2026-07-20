@@ -1,10 +1,12 @@
 import { create } from 'zustand';
 import { getFootprint, type PieceInstance } from '../lib/pieces';
 import { hasCollision } from '../lib/collision';
-import { worldToGrid } from '../lib/grid';
+import { worldToGrid, BOARD_WIDTH, BOARD_DEPTH } from '../lib/grid';
+import { findFreeSpot } from '../lib/placement';
 import { ensureSession, saveScene as persistSave, loadScene as persistLoad } from '../persistence';
 
 export type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
+export type PlacementResult = 'created' | 'updated' | 'conflict' | 'too-large' | 'no-space';
 
 interface SceneState {
   pieces: PieceInstance[];
@@ -18,6 +20,7 @@ interface SceneState {
   movePiece: (id: string, worldX: number, worldZ: number) => boolean;
   rotatePiece: (id: string) => void;
   setPieceColor: (id: string, color: string | null) => void;
+  addPiece: (input: { width: number; depth: number; label: string; color: string }) => PlacementResult;
   setViewMode: (mode: 'top' | 'perspective') => void;
   resetView: () => void;
   saveScene: () => Promise<void>;
@@ -91,6 +94,27 @@ export const useSceneStore = create<SceneState>((set, get) => ({
     set({
       pieces: pieces.map((p) => (p.id === id ? { ...p, colorOverride: color ?? undefined } : p)),
     });
+  },
+
+  addPiece: (input) => {
+    const { width, depth, label, color } = input;
+    if (width > BOARD_WIDTH || depth > BOARD_DEPTH) return 'too-large';
+    const { pieces } = get();
+    const spot = findFreeSpot(width, depth, pieces);
+    if (!spot) return 'no-space';
+    const newPiece: PieceInstance = {
+      id: crypto.randomUUID(),
+      type: 'custom',
+      gridX: spot.gridX,
+      gridY: spot.gridY,
+      rotation: 0,
+      widthOverride: width,
+      depthOverride: depth,
+      labelOverride: label,
+      colorOverride: color,
+    };
+    set({ pieces: [...pieces, newPiece] });
+    return 'created';
   },
 
   setViewMode: (viewMode) => set({ viewMode }),
