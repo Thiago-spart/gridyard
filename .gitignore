@@ -28,3 +28,6 @@ npm-debug.log*
 pnpm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# Superpowers scratch (subagent-driven-development progress ledger)
+.superpowers/
