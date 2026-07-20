@@ -226,9 +226,10 @@ is a pure additive swap-in once the env is present.
 |---|---|---|
 | **pmndrs docs** (`https://docs.pmnd.rs/api/mcp`) | Added | Official docs for React Three Fiber, drei, and Zustand — covers most of the frontend stack in one server |
 | **Context7** | Already available | General up-to-date docs lookup (React, Vitest, RTL, Supabase client, etc.) |
-| **Supabase official** (`https://mcp.supabase.com/mcp`) | Add when implementing the Supabase step | Create the `scenes` table + RLS policy directly, generate TS types from the live schema, security recommendations. Dev/demo project only — never point at production data. |
-| **Vercel official** (`https://mcp.vercel.com`) | Add at deploy time | Inspect/manage the live deployment, read deploy logs |
-| **GitHub official** (`github/github-mcp-server`) | Add once the repo exists | Repo/PR management, monitor GitHub Actions runs (relevant to the CI item below) |
+| **Supabase official** (`https://mcp.supabase.com/mcp`) | Added | Create the `scenes` table + RLS policy directly, generate TS types from the live schema, security recommendations. |
+| **Vercel official** (`https://mcp.vercel.com`) | Added | Inspect/manage the live deployment, read deploy logs, trigger deployments |
+| **GitHub official** (`github/github-mcp-server`) | Added | Repo/PR management, monitor GitHub Actions runs |
+
 
 Considered and skipped: Three.js DevTools MCP and GLTF→JSX converter MCPs — built for
 inspecting live scenes or converting external 3D models; irrelevant since pieces are
