@@ -460,6 +460,71 @@ stretch tooling (Storybook, Cypress) that the plan deliberately deferred.
 
 ---
 
-<!-- Next entries: Supabase follow-up plan, bonus features (perspective toggle, color
+## Step 16 — Supabase persistence: provisioning, backend-selection design, and a save-status race found in review
+
+**What I was doing:** Continuing the Supabase persistence follow-up spec (`ARCHITECTURE.md`)
+now that the Supabase MCP server was connected. Turned the spec into a 9-task TDD plan
+(`docs/superpowers/plans/2026-07-20-supabase-persistence.md`), then executed it with
+subagent-driven development: a fresh implementer subagent per task, a spec+quality review
+after each, on an isolated worktree/branch (`feat/supabase-persistence`, off `dev`).
+
+**What I asked the AI:** For Task 1 (infrastructure), I ran the provisioning myself rather
+than delegating it — creating the live `gridyard` Supabase project, the `scenes` table +
+RLS policy, and the anon/URL keys via MCP tools (`list_organizations`, `get_cost`,
+`confirm_cost`, `create_project`, `apply_migration`, `get_project_url`,
+`get_publishable_keys`). For Tasks 2–8 (client singleton, `persistence/supabase.ts`,
+backend-selection `persistence/index.ts`, async `sceneStore` + `saveStatus`, debounce
+utility, `SaveStatus` component, `App.tsx` wiring), I dispatched implementer + reviewer
+subagent pairs per the plan's TDD steps.
+
+**What the AI answered / found:**
+- Anonymous sign-ins are off by default on a new Supabase project, and there is no MCP
+  tool to toggle it — `signInAnonymously()` returns a 422 until it's enabled manually in
+  the dashboard (Authentication → Sign In / Providers). I flagged this and worked on the
+  remaining code tasks in parallel while waiting for it to be turned on.
+- Task 5's reviewer found a real concurrency bug in the plan's own prescribed
+  `saveStatus` code: overlapping `saveScene()` calls could let a stale `setTimeout` reset
+  the indicator to `'idle'` while a different save was still in flight. Three fix rounds
+  followed — a shared-timer guard, then a settle-order generation counter, then an
+  invocation-order generation counter — each closing one interleaving while a re-review
+  found a different one still open. The correct fix (an in-flight counter, only arming
+  the idle timer once it returns to zero) was identified but, given this only affects the
+  status indicator's display timing under a narrow live-latency window (not data
+  correctness — the underlying save always lands), I chose to accept the current state
+  rather than pursue a fourth round.
+- Task 8's reviewer found a second, more consequential race: on mount, the debounced
+  autosave could persist `INITIAL_PIECES` before a slow `loadScene()` resolved,
+  transiently (or, if the load never completed, permanently) overwriting a user's real
+  saved scene. This one I did have fixed — added a `hasLoaded` guard so autosave can't
+  fire until the initial load attempt finishes.
+
+**Did it work? What was good/bad:** The review-loop process caught two real bugs that
+were baked into the plan's own example code, not introduced by implementers — worth
+noting since it means "the plan says so" isn't a substitute for review. The three failed
+attempts at the `saveStatus` race were a genuine cost (a single generation counter can't
+represent "anything still in flight"; the theoretically correct fix needs a pending-count
+approach), and in hindsight scoping a stricter time-box on that particular fix chain
+before escalating to the user would have been cheaper.
+
+**How I resolved it:** No real browser/Playwright tool was available by default in this
+session, so for final verification I installed Playwright into a scratch directory
+(outside the repo) with a cached Chromium build, and drove the running `pnpm dev` server
+directly: confirmed the app renders, a piece drag actually calls `movePiece` (had to
+retarget my synthetic drag coordinates once the first attempt only triggered a piece
+*select*, not a move), the status indicator shows `Saving…` → `Saved` for a real network
+round-trip, and — most importantly — reloading the page in the same browser context
+restores the piece from the database rather than from `INITIAL_PIECES`. Cross-checked
+directly against the `scenes` table via the MCP SQL tool: exactly one row per anonymous
+`user_id`, correct `gridX`/`gridY`, RLS correctly isolating three different anonymous
+sessions from each other during testing. Cleared the test rows afterward.
+
+**How I continued:** Ran the full CI-equivalent suite with `.env.local` moved aside
+(lint, typecheck, `pnpm test`, `pnpm build`) — all clean, 66/66 tests, no network calls.
+Per this project's git workflow, work stops here for user testing/approval before
+`git push` / opening a PR against `dev`.
+
+---
+
+<!-- Next entries: bonus features (perspective toggle, color
 swap, performance pass), Storybook/Cypress stretch tooling. Entries from Antigravity to
 be added as it's used. -->
