@@ -2,20 +2,37 @@ import { create } from 'zustand';
 import { getFootprint, type PieceInstance } from '../lib/pieces';
 import { hasCollision } from '../lib/collision';
 import { worldToGrid } from '../lib/grid';
-import { saveScene as persistSave, loadScene as persistLoad } from '../persistence/localStorage';
+import { ensureSession, saveScene as persistSave, loadScene as persistLoad } from '../persistence';
+
+export type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
 
 interface SceneState {
   pieces: PieceInstance[];
   selectedIds: string[];
   viewMode: 'top' | 'perspective';
+  saveStatus: SaveStatus;
+  hasLoaded: boolean;
   selectPiece: (id: string) => void;
   clearSelection: () => void;
   movePiece: (id: string, worldX: number, worldZ: number) => boolean;
   rotatePiece: (id: string) => void;
   setViewMode: (mode: 'top' | 'perspective') => void;
-  saveScene: () => void;
-  loadScene: () => void;
+  saveScene: () => Promise<void>;
+  loadScene: () => Promise<void>;
 }
+
+// Tracks save *invocation* order (not settlement order). Bumped at the start
+// of every saveScene() call, before the await, and the resulting id is
+// captured in that call's closure. A call's idle-reset timer is only allowed
+// to fire if no *newer* call has been invoked since — checked by comparing
+// the captured id against this counter's current value when the timer fires.
+// This deliberately does NOT gate the status VALUE written when a call
+// settles (set({ saveStatus: nextStatus }) stays unconditional — whichever
+// call settles most recently wins the displayed value). It only gates
+// whether a call is allowed to reset the status to 'idle' later, so a call
+// that is superseded by a newer invocation can never wrongly report idle
+// while that newer call may still be in flight.
+let saveGeneration = 0;
 
 export const INITIAL_PIECES: PieceInstance[] = [
   { id: 'pallet-1', type: 'pallet', gridX: 0, gridY: 0, rotation: 0 },
@@ -28,6 +45,8 @@ export const useSceneStore = create<SceneState>((set, get) => ({
   pieces: INITIAL_PIECES,
   selectedIds: [],
   viewMode: 'top',
+  saveStatus: 'idle',
+  hasLoaded: false,
 
   selectPiece: (id) => {
     const { selectedIds } = get();
@@ -65,9 +84,33 @@ export const useSceneStore = create<SceneState>((set, get) => ({
 
   setViewMode: (viewMode) => set({ viewMode }),
 
-  saveScene: () => persistSave(get().pieces),
-  loadScene: () => {
-    const loaded = persistLoad();
+  saveScene: async () => {
+    const generation = ++saveGeneration;
+    set({ saveStatus: 'saving' });
+    let nextStatus: SaveStatus;
+    try {
+      await persistSave(get().pieces);
+      nextStatus = 'saved';
+    } catch (error) {
+      console.error('Failed to save scene:', error);
+      nextStatus = 'error';
+    }
+    set({ saveStatus: nextStatus });
+    setTimeout(() => {
+      if (generation === saveGeneration) set({ saveStatus: 'idle' });
+    }, 2000);
+  },
+
+  loadScene: async () => {
+    await ensureSession();
+    let loaded: PieceInstance[] | null;
+    try {
+      loaded = await persistLoad();
+    } catch (error) {
+      console.error('Failed to load scene:', error);
+      throw error;
+    }
     if (loaded) set({ pieces: loaded, selectedIds: [] });
+    set({ hasLoaded: true });
   },
 }));

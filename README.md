@@ -73,3 +73,22 @@ export default defineConfig([
 ])
 
 ```
+
+## Supabase Setup
+
+Persistence uses Supabase (anonymous auth + RLS) when configured, and falls back to
+`localStorage` with zero setup otherwise — see `ARCHITECTURE.md`'s "Supabase
+(persistence follow-up)" section for the full design.
+
+To run against a real Supabase project locally:
+
+1. Create a project at [supabase.com](https://supabase.com) (or use the one already
+   provisioned for this repo).
+2. In the dashboard, go to Project Settings → API and copy the **Project URL** and
+   **anon public** key.
+3. Copy `.env.example` to `.env.local` and paste those two values in.
+4. Restart `pnpm dev` if it was already running (Vite only reads `.env.local` at
+   startup).
+
+Without `.env.local`, the app runs entirely on `localStorage` — this is the default
+for CI and for anyone cloning the repo without Supabase credentials.
