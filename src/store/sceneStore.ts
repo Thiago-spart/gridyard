@@ -10,6 +10,7 @@ interface SceneState {
   pieces: PieceInstance[];
   selectedIds: string[];
   viewMode: 'top' | 'perspective';
+  viewResetToken: number;
   saveStatus: SaveStatus;
   hasLoaded: boolean;
   selectPiece: (id: string) => void;
@@ -17,6 +18,7 @@ interface SceneState {
   movePiece: (id: string, worldX: number, worldZ: number) => boolean;
   rotatePiece: (id: string) => void;
   setViewMode: (mode: 'top' | 'perspective') => void;
+  resetView: () => void;
   saveScene: () => Promise<void>;
   loadScene: () => Promise<void>;
 }
@@ -45,6 +47,7 @@ export const useSceneStore = create<SceneState>((set, get) => ({
   pieces: INITIAL_PIECES,
   selectedIds: [],
   viewMode: 'top',
+  viewResetToken: 0,
   saveStatus: 'idle',
   hasLoaded: false,
 
@@ -83,6 +86,8 @@ export const useSceneStore = create<SceneState>((set, get) => ({
   },
 
   setViewMode: (viewMode) => set({ viewMode }),
+
+  resetView: () => set((s) => ({ viewResetToken: s.viewResetToken + 1 })),
 
   saveScene: async () => {
     const generation = ++saveGeneration;

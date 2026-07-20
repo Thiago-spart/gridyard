@@ -3,6 +3,7 @@ import { Scene } from './scene/Scene';
 import { MeasurementPanel } from './ui/MeasurementPanel';
 import { Legend } from './ui/Legend';
 import { RotateButton } from './ui/RotateButton';
+import { ViewToggle } from './ui/ViewToggle';
 import { ResponsiveLayout } from './ui/ResponsiveLayout';
 import { SaveStatus } from './ui/SaveStatus';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
@@ -36,6 +37,7 @@ export function App() {
       panel={
         <div className="flex flex-col gap-3">
           <SaveStatus />
+          <ViewToggle />
           <Legend />
           <MeasurementPanel />
           <RotateButton />
