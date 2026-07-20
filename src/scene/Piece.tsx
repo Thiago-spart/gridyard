@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import type { ThreeEvent } from '@react-three/fiber';
 import { Html, Outlines } from '@react-three/drei';
 import { getFootprint, getPieceColor, getPieceLabel, type PieceInstance } from '../lib/pieces';
@@ -7,10 +8,10 @@ import { useSceneStore } from '../store/sceneStore';
 interface PieceProps {
   piece: PieceInstance;
   dragPoint: { x: number; z: number } | null;
-  onDragStart: () => void;
+  onDragStart: (id: string) => void;
 }
 
-export function Piece({ piece, dragPoint, onDragStart }: PieceProps) {
+export const Piece = memo(function Piece({ piece, dragPoint, onDragStart }: PieceProps) {
   const { width, depth } = getFootprint(piece);
   const selectedIds = useSceneStore((s) => s.selectedIds);
   const selectPiece = useSceneStore((s) => s.selectPiece);
@@ -28,7 +29,7 @@ export function Piece({ piece, dragPoint, onDragStart }: PieceProps) {
   function handlePointerDown(event: ThreeEvent<PointerEvent>) {
     event.stopPropagation();
     selectPiece(piece.id);
-    onDragStart();
+    onDragStart(piece.id);
   }
 
   return (
@@ -47,4 +48,4 @@ export function Piece({ piece, dragPoint, onDragStart }: PieceProps) {
       )}
     </group>
   );
-}
+});
