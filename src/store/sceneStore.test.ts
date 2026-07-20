@@ -120,4 +120,47 @@ describe('saveStatus', () => {
     expect(useSceneStore.getState().saveStatus).toBe('idle');
     vi.useRealTimers();
   });
+
+  it('logs the error to the console when the save fails', async () => {
+    vi.useFakeTimers();
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const failure = new Error('offline');
+    mocks.saveScene.mockRejectedValueOnce(failure);
+    await useSceneStore.getState().saveScene();
+    expect(consoleErrorSpy).toHaveBeenCalledWith('Failed to save scene:', failure);
+    await vi.advanceTimersByTimeAsync(2000);
+    consoleErrorSpy.mockRestore();
+    vi.useRealTimers();
+  });
+
+  it('does not let a stale timer from an earlier save clobber a newer save status', async () => {
+    vi.useFakeTimers();
+
+    // First save resolves quickly, scheduling an idle timer ~2000ms out.
+    const firstSave = useSceneStore.getState().saveScene();
+    await firstSave;
+    expect(useSceneStore.getState().saveStatus).toBe('saved');
+
+    // Advance partway through the first save's idle window, then start a second save
+    // that fails, before the first timer would have fired.
+    await vi.advanceTimersByTimeAsync(1000);
+    mocks.saveScene.mockRejectedValueOnce(new Error('offline'));
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const secondSave = useSceneStore.getState().saveScene();
+    expect(useSceneStore.getState().saveStatus).toBe('saving');
+    await secondSave;
+    expect(useSceneStore.getState().saveStatus).toBe('error');
+
+    // At the point the FIRST save's stale timer would have fired (1000ms after it was
+    // scheduled), the second save's 'error' status must not be clobbered back to 'idle'.
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(useSceneStore.getState().saveStatus).toBe('error');
+
+    // Only once the second save's own 2000ms window elapses should it settle to idle.
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(useSceneStore.getState().saveStatus).toBe('idle');
+
+    consoleErrorSpy.mockRestore();
+    vi.useRealTimers();
+  });
 });

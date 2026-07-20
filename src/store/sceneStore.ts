@@ -20,6 +20,8 @@ interface SceneState {
   loadScene: () => Promise<void>;
 }
 
+let saveStatusIdleTimer: ReturnType<typeof setTimeout> | undefined;
+
 export const INITIAL_PIECES: PieceInstance[] = [
   { id: 'pallet-1', type: 'pallet', gridX: 0, gridY: 0, rotation: 0 },
   { id: 'shelf-1', type: 'shelf', gridX: 3, gridY: 0, rotation: 0 },
@@ -70,14 +72,16 @@ export const useSceneStore = create<SceneState>((set, get) => ({
   setViewMode: (viewMode) => set({ viewMode }),
 
   saveScene: async () => {
+    clearTimeout(saveStatusIdleTimer);
     set({ saveStatus: 'saving' });
     try {
       await persistSave(get().pieces);
       set({ saveStatus: 'saved' });
-    } catch {
+    } catch (error) {
+      console.error('Failed to save scene:', error);
       set({ saveStatus: 'error' });
     }
-    setTimeout(() => set({ saveStatus: 'idle' }), 2000);
+    saveStatusIdleTimer = setTimeout(() => set({ saveStatus: 'idle' }), 2000);
   },
 
   loadScene: async () => {
