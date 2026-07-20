@@ -584,7 +584,67 @@ branch and opened the PR against `dev` only after explicit approval
 
 ---
 
-<!-- Next entries: remaining bonus features (color swap, performance pass — deferred, not
-currently justified per this step's React Compiler discussion and DESIGN.md's stated
-priority), Storybook/Cypress stretch tooling. Entries from Antigravity to be added as
-it's used. -->
+## Step 18 — Performance stance and React Compiler documentation
+
+**What I was doing:** Updating and clarifying the project's performance documentation in `README.md` before implementing further bonus features, establishing why React Compiler was not adopted and documenting the baseline performance stance.
+
+**What I asked the AI:** "Let's update the README performance section to explain our conservative stance on performance, specifically addressing React Compiler and why we're not adopting it now."
+
+**What the AI answered:** Updated `README.md` with an explicit technical justification: computations live in pure `lib/` modules, React components in the DOM HUD are small and lightweight, and React Three Fiber renders through its own custom reconciler where React Compiler's auto-memoization benefits are unproven.
+
+**Did it work? What was good/bad:** Worked well — established a clear architectural decision in documentation before writing feature code, preventing premature optimization while keeping technical debt low.
+
+**How I resolved it:** Pushed as PR #19 (`abab9a8`), merged into `dev`.
+
+**How I continued:** Proceeded to the second bonus item from `DESIGN.md`: per-piece color customization.
+
+---
+
+## Step 19 — Per-piece color swap (bonus feature #2)
+
+**What I was doing:** Implementing the per-piece color customization feature from `DESIGN.md` — enabling the user to change the color of any selected piece via a curated color swatch picker.
+
+**What I asked the AI:** "Let's implement the per-piece color swap feature from DESIGN.md."
+
+**What the AI answered:** Created a design spec (`docs/superpowers/specs/2026-07-20-per-piece-color-swap-design.md`) and a TDD plan (`docs/superpowers/plans/2026-07-20-per-piece-color-swap.md`). Added an optional `colorOverride` field on `PieceInstance`, a `setPieceColor` action in `sceneStore`, a `ColorSwatchPicker` component in `ui/`, and adjusted the selection highlight behavior in `Piece.tsx` from full mesh recoloring to an outline frame so the customized piece color remains visible while selected.
+
+**Did it work? What was good/bad:** A key UX challenge surfaced: when selection highlighting was done by overriding the mesh material color, picking a new color gave no live visual feedback because the selection color covered the piece. Replacing the selection material override with an outline (wireframe / selection border) solved this cleanly, allowing live color previews.
+
+**How I resolved it:** Updated `Piece.tsx` to render an outline mesh when selected, and added full Vitest coverage for `ColorSwatchPicker` and store actions. Pushed as PR #20 (`afbf103`), merged into `dev`.
+
+**How I continued:** Moved on to the runtime piece creation and editing feature.
+
+---
+
+## Step 20 — Runtime piece creation, editing, and deletion
+
+**What I was doing:** Expanding the editor from a fixed 4-piece scene to supporting dynamic runtime piece creation, editing (dimensions, color, label), and deletion.
+
+**What I asked the AI:** "Let's implement runtime piece creation and editing so users can add custom pieces to the board, change dimensions and labels, and delete pieces."
+
+**What the AI answered:** Wrote design spec (`docs/superpowers/specs/2026-07-20-piece-creation-and-editing-design.md`) and plan (`docs/superpowers/plans/2026-07-20-piece-creation-and-editing.md`). Implemented `findFreeSpot` placement helper in `lib/placement.ts`, added `addPiece`, `updatePiece`, and `deletePiece` store actions, extracted `SwatchRow` from `ColorSwatchPicker`, created `PieceForm` (with conflict detection and 2-step confirmation when resizing causes collisions), created `DeleteButton`, and updated `Legend` to filter out internal placeholder types.
+
+**Did it work? What was good/bad:** Two minor issues caught during code review:
+1. `Legend` was iterating all `PIECE_DEFS` and showing a spurious "Custom" row — fixed by explicitly filtering to the 4 fixed catalog piece types.
+2. Input native `max` HTML attributes on width/depth inputs caused browser validation to mark inputs as `:invalid` even when the store's validation was intended to handle board boundary checks — fixed by removing native `max` attributes and relying on store validation logic.
+
+**How I resolved it:** Resolved both issues in `PieceForm.tsx` and `Legend.tsx`, with 100% test coverage in Vitest (119/119 passing tests across 21 test files). Pushed as PR #21 (`db0b237`), merged into `dev`.
+
+**How I continued:** Addressed the performance implications of having unbounded piece counts on the board.
+
+---
+
+## Step 21 — Performance pass: Memoizing `Piece` & drag handler optimization
+
+**What I was doing:** Optimizing rendering performance now that piece count is unbounded (up to ~80 pieces on the 10×8 grid) instead of fixed at 4.
+
+**What I asked the AI:** "Now that piece creation allows unbounded pieces on the board, let's audit performance and optimize piece re-rendering during drag."
+
+**What the AI answered:** Identified that `Pieces.tsx` held drag state at the parent level, causing every pointer movement during drag to re-render all pieces on the board. Furthermore, each render passed a new `onDragStart` closure, which defeated naive `React.memo`. Refactored `Pieces.tsx` with a stable `useCallback`-wrapped `startDrag` and wrapped `Piece` in `React.memo`.
+
+**Did it work? What was good/bad:** Highly effective — verified manually in browser testing: dragging a piece now re-renders *only* the dragged piece, skipping all unrelated pieces on the board. Updated `README.md` performance section with the verified outcome.
+
+**How I resolved it:** Pushed as PR #22 (`cb42b82`), merged into `dev`.
+
+**How I continued:** All core requirements, bonus features, and performance optimizations are fully completed, tested, and documented.
+
