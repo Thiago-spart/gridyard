@@ -19,6 +19,7 @@ function resetStore() {
     pieces: INITIAL_PIECES,
     selectedIds: [],
     viewMode: 'top',
+    viewResetToken: 0,
     saveStatus: 'idle',
     hasLoaded: false,
   });
@@ -76,6 +77,25 @@ describe('rotatePiece', () => {
     expect(useSceneStore.getState().pieces.find((p) => p.id === 'shelf-1')?.rotation).toBe(90);
     useSceneStore.getState().rotatePiece('shelf-1');
     expect(useSceneStore.getState().pieces.find((p) => p.id === 'shelf-1')?.rotation).toBe(0);
+  });
+});
+
+describe('setViewMode', () => {
+  it('updates the view mode', () => {
+    useSceneStore.getState().setViewMode('perspective');
+    expect(useSceneStore.getState().viewMode).toBe('perspective');
+    useSceneStore.getState().setViewMode('top');
+    expect(useSceneStore.getState().viewMode).toBe('top');
+  });
+});
+
+describe('resetView', () => {
+  it('increments viewResetToken on each call', () => {
+    expect(useSceneStore.getState().viewResetToken).toBe(0);
+    useSceneStore.getState().resetView();
+    expect(useSceneStore.getState().viewResetToken).toBe(1);
+    useSceneStore.getState().resetView();
+    expect(useSceneStore.getState().viewResetToken).toBe(2);
   });
 });
 
