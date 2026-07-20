@@ -1,124 +1,87 @@
-# React + TypeScript + Vite
+# Gridyard — Mini Editor de Cena 3D
+> **Desafio Técnico Dev Full-Stack com 3D Web — InLab / Artefacto**
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+**Gridyard** é um mini editor 3D no formato de ferramenta de planejamento de layout para armazéns e galpões logísticos (*floor-plan layout tool*). A aplicação permite posicionar, rotacionar, personalizar e medir elementos industriais (como paletes, prateleiras, caixas e estações de trabalho) em uma grade 10×8 com resposta visual instantânea.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## 📄 Documentação do Desafio Técnico & Entrega
 
-## Performance
+Em conformidade com as instruções do desafio (`Teste_Tecnico_Dev_InLab_ENVIAR_5dias.pdf`), a entrega completa está dividida e documentada nos seguintes arquivos:
 
-Performance work here is deliberately conservative — no instancing, no virtualization,
-no React Compiler — but it's no longer premised on a fixed piece count. A later feature
-(`docs/superpowers/plans/2026-07-20-piece-creation-and-editing.md`) made piece count
-unbounded (capped only by board space, ~80 cells at 1×1 on the 10×8 grid), so the
-original "only 4 pieces, ever" justification stopped being true. The reasoning was
-revisited rather than left stale:
+- 📋 **[SUBMISSION.md](file:///home/loki/www/challengers/innovation_challenger/SUBMISSION.md)**: **Documento Oficial de Entrega** (dividido em Parte 1: Resumo Simples para Não-Técnicos, Parte 2: Detalhe Técnico para Desenvolvedores, e Parte 3: Log com IA).
+- 🤖 **[AI_LOG.md](file:///home/loki/www/challengers/innovation_challenger/AI_LOG.md)**: **Log de IA Unificado** (sequência real de 21 passos do desenvolvimento assistido por IA, incluindo prompts na íntegra, erros e soluções).
+- 🏗️ **[ARCHITECTURE.md](file:///home/loki/www/challengers/innovation_challenger/ARCHITECTURE.md)**: Decisões de stack, estrutura de pastas, Zustand store e schema do Supabase com Row-Level Security (RLS).
+- 🎨 **[DESIGN.md](file:///home/loki/www/challengers/innovation_challenger/DESIGN.md)**: Definição de conceito de produto, mecânicas de colisão (AABB), snap, sistema de medidas e design responsivo.
+- 💅 **[STYLE_GUIDE.md](file:///home/loki/www/challengers/innovation_challenger/STYLE_GUIDE.md)**: Identidade visual, marca, paleta de cores e tokens do Tailwind CSS v4.
 
-- **One real inefficiency was found and fixed.** `scene/Pieces.tsx` held drag state
-  (`dragPoint`) at the parent level, so every pointer-move during a drag re-rendered
-  *every* piece's component function, not just the one moving — and each `Piece` got a
-  brand-new `onDragStart` closure per render, which would have defeated memoization even
-  if added naively. Fixed by wrapping `Piece` in `React.memo` and giving `Pieces.tsx` a
-  stable, `useCallback`-wrapped `startDrag` shared across all pieces, so unrelated pieces
-  now correctly skip re-rendering during another piece's drag.
-- **Instancing still isn't justified.** Even at board capacity (~80 pieces), that's a
-  small draw-call count for flat-shaded boxes — instancing (drei's `<Instances>`) only
-  starts paying for itself at a scale well beyond what this board can physically hold,
-  and it would come at the cost of the per-piece color/label/rotation flexibility the
-  creation/editing feature depends on.
-- **The actual computation lives in `lib/`, not the render loop.** Collision detection,
-  grid snapping, placement search (`lib/placement.ts`), and measurement formatting are
-  pure, framework-free functions (covered by Vitest), not per-frame Three.js work — so
-  render-loop optimization wouldn't target where the logic actually runs.
-- **React Compiler is still not enabled.** Its benefit is auto-memoizing complex
-  `react-dom` render trees; the panel components here are small and already cheap to
-  re-render, and the 3D content renders through React Three Fiber's own custom
-  reconciler rather than `react-dom`, where the compiler's benefit with this stack is
-  unproven. See `AI_LOG.md` Step 17 for the fuller discussion.
+---
 
-If profiling ever surfaces an actual frame-rate problem beyond the fix above, that's the
-trigger to revisit this further — not before.
+## 🛠️ Stack Tecnológica
 
-## Expanding the ESLint configuration
+- **Core**: React 19, TypeScript, Vite, Tailwind CSS v4 (`@tailwindcss/vite`).
+- **3D**: Three.js, React Three Fiber (R3F), `@react-three/drei`.
+- **Estado**: Zustand (`sceneStore.ts`).
+- **Persistência**: Supabase (JS SDK com Auth Anônimo e RLS) + fallback em `localStorage`.
+- **Testes & Qualidade**: Vitest, React Testing Library, ESLint, TypeScript Strict Mode, GitHub Actions CI.
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+---
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## 🚀 Como Executar o Projeto
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+### 1. Requisitos
+- Node.js >= 20.x
+- pnpm >= 9.x
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### 2. Instalação e Execução Local
+```bash
+# Clone o repositório
+git clone https://github.com/Thiago-spart/gridyard.git
+cd gridyard
 
+# Instale as dependências
+pnpm install
+
+# Inicie o servidor de desenvolvimento
+pnpm dev
+```
+Abra o navegador em `http://localhost:5173`.
+
+### 3. Executando os Testes & Checagem de Tipos
+```bash
+# Executar a suíte de testes unitários (21 arquivos / 119 testes)
+pnpm test
+
+# Executar checagem estática de tipos TypeScript
+pnpm typecheck
+
+# Executar linter ESLint
+pnpm lint
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+---
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## ⚡ Configuração do Supabase (Opcional)
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+A persistência do Gridyard utiliza o **Supabase** (autenticação anônima + RLS) quando as variáveis de ambiente estão presentes, e alterna automaticamente para `localStorage` caso contrário:
 
-```
+1. Copie `.env.example` para `.env.local`:
+   ```bash
+   cp .env.example .env.local
+   ```
+2. Adicione sua URL do Supabase e Anon Key em `.env.local`:
+   ```env
+   VITE_SUPABASE_URL=https://sua-url-supabase.supabase.co
+   VITE_SUPABASE_ANON_KEY=sua-anon-key-publica
+   ```
+3. Reinicie `pnpm dev`.
 
-## Supabase Setup
+Sem `.env.local`, o aplicativo roda 100% via `localStorage` (padrão para CI e execuções sem credenciais).
 
-Persistence uses Supabase (anonymous auth + RLS) when configured, and falls back to
-`localStorage` with zero setup otherwise — see `ARCHITECTURE.md`'s "Supabase
-(persistence follow-up)" section for the full design.
+---
 
-To run against a real Supabase project locally:
+## 📊 Desempenho & Otimizações
 
-1. Create a project at [supabase.com](https://supabase.com) (or use the one already
-   provisioned for this repo).
-2. In the dashboard, go to Project Settings → API and copy the **Project URL** and
-   **anon public** key.
-3. Copy `.env.example` to `.env.local` and paste those two values in.
-4. Restart `pnpm dev` if it was already running (Vite only reads `.env.local` at
-   startup).
-
-Without `.env.local`, the app runs entirely on `localStorage` — this is the default
-for CI and for anyone cloning the repo without Supabase credentials.
+- **Arraste Transiente**: Coordenadas de arraste vivem no estado local do ponteiro, evitando re-renderizar a árvore DOM a cada frame de movimento.
+- **Memoização com `React.memo`**: `Piece` é memoizado e `Pieces.tsx` fornece um callback `startDrag` estável via `useCallback`, garantindo que o arraste de uma peça re-renderize apenas aquela peça individual.
+- **Cálculos Puros em `lib/`**: Checagens de colisão AABB, conversão de grade e formatação de medidas são funções puras e desacopladas da renderização WebGL.
