@@ -14,6 +14,7 @@ export function App() {
   const loadScene = useSceneStore((s) => s.loadScene);
   const saveScene = useSceneStore((s) => s.saveScene);
   const pieces = useSceneStore((s) => s.pieces);
+  const hasLoaded = useSceneStore((s) => s.hasLoaded);
 
   const debouncedSave = useMemo(() => debounce(saveScene, 600), [saveScene]);
 
@@ -23,8 +24,9 @@ export function App() {
   }, []);
 
   useEffect(() => {
+    if (!hasLoaded) return;
     debouncedSave();
-  }, [pieces, debouncedSave]);
+  }, [pieces, hasLoaded, debouncedSave]);
 
   return (
     <ResponsiveLayout

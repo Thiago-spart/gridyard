@@ -11,6 +11,7 @@ interface SceneState {
   selectedIds: string[];
   viewMode: 'top' | 'perspective';
   saveStatus: SaveStatus;
+  hasLoaded: boolean;
   selectPiece: (id: string) => void;
   clearSelection: () => void;
   movePiece: (id: string, worldX: number, worldZ: number) => boolean;
@@ -45,6 +46,7 @@ export const useSceneStore = create<SceneState>((set, get) => ({
   selectedIds: [],
   viewMode: 'top',
   saveStatus: 'idle',
+  hasLoaded: false,
 
   selectPiece: (id) => {
     const { selectedIds } = get();
@@ -103,5 +105,6 @@ export const useSceneStore = create<SceneState>((set, get) => ({
     await ensureSession();
     const loaded = await persistLoad();
     if (loaded) set({ pieces: loaded, selectedIds: [] });
+    set({ hasLoaded: true });
   },
 }));

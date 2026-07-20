@@ -20,6 +20,7 @@ function resetStore() {
     selectedIds: [],
     viewMode: 'top',
     saveStatus: 'idle',
+    hasLoaded: false,
   });
 }
 
@@ -95,6 +96,20 @@ describe('saveScene / loadScene', () => {
   it('leaves pieces unchanged when nothing was persisted', async () => {
     await useSceneStore.getState().loadScene();
     expect(useSceneStore.getState().pieces).toEqual(INITIAL_PIECES);
+  });
+
+  it('starts with hasLoaded false and sets it true once loadScene resolves with a persisted scene', async () => {
+    expect(useSceneStore.getState().hasLoaded).toBe(false);
+    const loaded: PieceInstance[] = [{ id: 'a', type: 'pallet', gridX: 8, gridY: 7, rotation: 0 }];
+    mocks.loadScene.mockResolvedValue(loaded);
+    await useSceneStore.getState().loadScene();
+    expect(useSceneStore.getState().hasLoaded).toBe(true);
+  });
+
+  it('sets hasLoaded true even when nothing was persisted', async () => {
+    expect(useSceneStore.getState().hasLoaded).toBe(false);
+    await useSceneStore.getState().loadScene();
+    expect(useSceneStore.getState().hasLoaded).toBe(true);
   });
 });
 
