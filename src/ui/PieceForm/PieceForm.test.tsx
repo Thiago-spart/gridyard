@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import { PieceForm } from './PieceForm';
 import { useSceneStore, INITIAL_PIECES } from '../../store/sceneStore';
 
@@ -99,5 +99,21 @@ describe('PieceForm edit mode', () => {
     expect(screen.getByText('Width')).toBeInTheDocument();
     const pallet = useSceneStore.getState().pieces.find((p) => p.id === 'pallet-1');
     expect(pallet?.widthOverride).toBeUndefined();
+  });
+
+  it('closes the form when the selection changes to a different piece while open', () => {
+    useSceneStore.setState({ selectedIds: ['shelf-1'] });
+    render(<PieceForm mode="edit" />);
+    fireEvent.click(screen.getByRole('button', { name: 'Edit piece' }));
+    expect(screen.getByText('Width')).toBeInTheDocument();
+
+    act(() => {
+      useSceneStore.setState({ selectedIds: ['crate-1'] });
+    });
+
+    expect(screen.queryByText('Width')).not.toBeInTheDocument();
+    // The newly selected piece's overrides are untouched -- no stale submit happened.
+    const crate = useSceneStore.getState().pieces.find((p) => p.id === 'crate-1');
+    expect(crate?.labelOverride).toBeUndefined();
   });
 });

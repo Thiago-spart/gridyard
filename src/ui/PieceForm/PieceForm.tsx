@@ -1,7 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useSceneStore, type PlacementResult } from '../../store/sceneStore';
 import { PIECE_DEFS, getBaseFootprint, getPieceColor, getPieceLabel } from '../../lib/pieces';
-import { BOARD_WIDTH, BOARD_DEPTH } from '../../lib/grid';
 import { SwatchRow } from '../SwatchRow';
 
 const CURATED_SWATCHES = [
@@ -32,6 +31,14 @@ export function PieceForm({ mode }: PieceFormProps) {
   const [conflict, setConflict] = useState(false);
 
   const piece = mode === 'edit' ? pieces.find((p) => p.id === selectedIds[0]) : undefined;
+
+  // If the selection changes to a different piece while the edit form is open, close it
+  // rather than silently submitting the previous piece's seeded values against the new
+  // selection -- the user has to reopen (which re-seeds fresh) to edit the new piece.
+  useEffect(() => {
+    if (mode === 'edit' && isOpen) closeForm();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [piece?.id]);
 
   if (mode === 'edit' && (selectedIds.length !== 1 || !piece)) return null;
 
@@ -105,7 +112,6 @@ export function PieceForm({ mode }: PieceFormProps) {
         <input
           type="number"
           min={1}
-          max={BOARD_WIDTH}
           value={width}
           onChange={(e) => setWidth(Math.max(1, Number(e.target.value) || 1))}
           className="w-16 rounded border border-ink/20 px-2 py-1"
@@ -116,7 +122,6 @@ export function PieceForm({ mode }: PieceFormProps) {
         <input
           type="number"
           min={1}
-          max={BOARD_DEPTH}
           value={depth}
           onChange={(e) => setDepth(Math.max(1, Number(e.target.value) || 1))}
           className="w-16 rounded border border-ink/20 px-2 py-1"
