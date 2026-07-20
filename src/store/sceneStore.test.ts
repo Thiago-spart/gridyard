@@ -163,4 +163,55 @@ describe('saveStatus', () => {
     consoleErrorSpy.mockRestore();
     vi.useRealTimers();
   });
+
+  it('reflects the call that resolved last when two overlapping saves settle out of order', async () => {
+    vi.useFakeTimers();
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    let resolveA!: () => void;
+    let rejectB!: (error: Error) => void;
+    const pendingA = new Promise<void>((resolve) => {
+      resolveA = resolve;
+    });
+    const pendingB = new Promise<void>((_resolve, reject) => {
+      rejectB = reject;
+    });
+    mocks.saveScene.mockImplementationOnce(() => pendingA);
+    mocks.saveScene.mockImplementationOnce(() => pendingB);
+
+    // Call A is invoked first, call B is invoked second, while A is still pending.
+    const callA = useSceneStore.getState().saveScene();
+    const callB = useSceneStore.getState().saveScene();
+    expect(useSceneStore.getState().saveStatus).toBe('saving');
+
+    // B (invoked second) settles first, out of order.
+    await vi.advanceTimersByTimeAsync(500);
+    rejectB(new Error('B failed'));
+    await callB;
+    expect(useSceneStore.getState().saveStatus).toBe('error');
+
+    // A (invoked first) settles later, and its outcome must win.
+    await vi.advanceTimersByTimeAsync(500);
+    resolveA();
+    await callA;
+    expect(useSceneStore.getState().saveStatus).toBe('saved');
+
+    // Just before B's idle timer would fire (B settled at t=500, so its timer
+    // targets t=2500; we are currently at t=1000), status must still be A's.
+    await vi.advanceTimersByTimeAsync(1499);
+    expect(useSceneStore.getState().saveStatus).toBe('saved');
+
+    // B's stale idle timer fires now (t=2500) but must be a no-op — it must not
+    // reset status to idle ahead of A's own schedule.
+    await vi.advanceTimersByTimeAsync(1);
+    expect(useSceneStore.getState().saveStatus).toBe('saved');
+
+    // Only A's own idle timer, 2000ms after A settled (t=3000), should reset
+    // status to idle — and only once.
+    await vi.advanceTimersByTimeAsync(500);
+    expect(useSceneStore.getState().saveStatus).toBe('idle');
+
+    consoleErrorSpy.mockRestore();
+    vi.useRealTimers();
+  });
 });

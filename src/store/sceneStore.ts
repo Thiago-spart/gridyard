@@ -20,7 +20,13 @@ interface SceneState {
   loadScene: () => Promise<void>;
 }
 
-let saveStatusIdleTimer: ReturnType<typeof setTimeout> | undefined;
+// Tracks save resolution order (not invocation order). Bumped once a call's
+// persistSave settles, right before it decides the resulting status and
+// schedules its own idle-reset timer. Only the timer belonging to whichever
+// call settled *last* will still see its captured value match this counter
+// when it fires, so an earlier-settling call's timer can never clobber a
+// later-settling call's status — regardless of invocation order.
+let saveGeneration = 0;
 
 export const INITIAL_PIECES: PieceInstance[] = [
   { id: 'pallet-1', type: 'pallet', gridX: 0, gridY: 0, rotation: 0 },
@@ -72,16 +78,20 @@ export const useSceneStore = create<SceneState>((set, get) => ({
   setViewMode: (viewMode) => set({ viewMode }),
 
   saveScene: async () => {
-    clearTimeout(saveStatusIdleTimer);
     set({ saveStatus: 'saving' });
+    let nextStatus: SaveStatus;
     try {
       await persistSave(get().pieces);
-      set({ saveStatus: 'saved' });
+      nextStatus = 'saved';
     } catch (error) {
       console.error('Failed to save scene:', error);
-      set({ saveStatus: 'error' });
+      nextStatus = 'error';
     }
-    saveStatusIdleTimer = setTimeout(() => set({ saveStatus: 'idle' }), 2000);
+    const generation = ++saveGeneration;
+    set({ saveStatus: nextStatus });
+    setTimeout(() => {
+      if (generation === saveGeneration) set({ saveStatus: 'idle' });
+    }, 2000);
   },
 
   loadScene: async () => {
