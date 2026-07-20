@@ -1,0 +1,17 @@
+{
+  "mcpServers": {
+    "Vercel": {
+      "serverUrl": "https://mcp.vercel.com"
+    },
+    "Supabase": {
+      "serverUrl": "https://mcp.supabase.com/mcp"
+    },
+    "GitHub": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-github"
+      ]
+    }
+  }
+}
