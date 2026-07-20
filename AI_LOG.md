@@ -525,6 +525,66 @@ Per this project's git workflow, work stops here for user testing/approval befor
 
 ---
 
-<!-- Next entries: bonus features (perspective toggle, color
-swap, performance pass), Storybook/Cypress stretch tooling. Entries from Antigravity to
-be added as it's used. -->
+## Step 17 — Perspective camera toggle (bonus feature), and a performance/React Compiler aside
+
+**What I was doing:** With MVP + Supabase persistence merged, picked up the next item
+from `DESIGN.md`'s bonus priority list: the perspective camera toggle — cheap, high
+visual payoff, and `viewMode`/`setViewMode` were already scaffolded in the scene store
+during the MVP specifically so this would be a small addition.
+
+**What I asked the AI:** "let's do the 1, show me how you think of building it" (after
+the AI recommended it as the next step over Storybook/Cypress). Mid-session, before
+resuming, I also asked a tangent: "is it a good idea to implement auto memoization using
+the React Compiler" for this app.
+
+**What the AI answered:**
+- On React Compiler: recommended against adopting it now — the side panel components are
+  small and already cheap to re-render, and the actual 3D content runs through React
+  Three Fiber's own custom reconciler rather than `react-dom`, where the compiler's
+  benefit is unproven. Framed as solving a problem `DESIGN.md` already says isn't real
+  yet at 4 pieces on screen. Not implemented.
+- On the toggle: ran a full brainstorming pass before touching code — proposed free-orbit
+  perspective (vs. a fixed angled view) and a "Reset view" control (since free orbit lets
+  a user rotate/tilt until they lose their bearings), both confirmed by me. Wrote a
+  design spec, then a 5-task TDD implementation plan: `viewResetToken`/`resetView` added
+  to the scene store, `Scene.tsx` branching between the existing locked orthographic
+  camera and a new `PerspectiveCamera` + `OrbitControls`, targeting the board's center
+  (not world origin) via the same math `DragPlane` already uses — all wrapped in a
+  `<group key={viewResetToken}>` so entering perspective mode and clicking "Reset view"
+  both snap to the same default angle via a React remount, with no imperative
+  `OrbitControls.reset()` ref handling needed.
+
+**Did it work? What was good/bad:** Built via subagent-driven-development — a fresh
+implementer subagent per task, then a reviewer per task — and hit one process snag: the
+first implementer's isolated worktree ended up on its own branch cut from `dev` instead
+of my feature branch (which already had the spec commit), since it had no visibility into
+branches outside its own worktree. Caught it before the review step, cherry-picked the
+commit onto the right branch, and switched every subsequent task to work directly in the
+shared checkout instead of a fresh isolated worktree. All 4 code tasks came back
+"Approved" with no Critical/Important findings; the final whole-branch review was also
+clean ("Ready to merge: Yes"), surfacing only two cosmetic Minor notes (missing
+`aria-pressed` on the toggle button, a redundant Tailwind class) that didn't block merge.
+
+**How I resolved it:** For the manual verification task (`scene/` isn't unit tested, per
+the established testing strategy), installed Playwright into a scratch directory again
+(same approach as Step 16) and drove the running `pnpm dev` server: confirmed top mode is
+unchanged, perspective mode renders correctly with both buttons, free orbit actually
+rotates the camera (compared before/after screenshots), "Reset view" snaps back to
+pixel-identical framing, a piece can be selected and dragged to a new grid cell while in
+perspective mode (raycasting is camera-type-independent, so `DragPlane`/`Pieces` needed
+no changes), a top→perspective→top→perspective round trip resets to the same default
+angle rather than preserving the orbited-away state, the mobile bottom-sheet layout
+renders the new buttons without overflow, and zero browser console errors across every
+interaction.
+
+**How I continued:** Ran the full CI-equivalent gate (lint, typecheck, `pnpm test`,
+`pnpm build`) — all clean, 75/75 tests. Per this project's git workflow, pushed the
+branch and opened the PR against `dev` only after explicit approval
+(github.com/Thiago-spart/gridyard/pull/18).
+
+---
+
+<!-- Next entries: remaining bonus features (color swap, performance pass — deferred, not
+currently justified per this step's React Compiler discussion and DESIGN.md's stated
+priority), Storybook/Cypress stretch tooling. Entries from Antigravity to be added as
+it's used. -->
