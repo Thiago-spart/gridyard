@@ -17,6 +17,7 @@ interface SceneState {
   clearSelection: () => void;
   movePiece: (id: string, worldX: number, worldZ: number) => boolean;
   rotatePiece: (id: string) => void;
+  setPieceColor: (id: string, color: string | null) => void;
   setViewMode: (mode: 'top' | 'perspective') => void;
   resetView: () => void;
   saveScene: () => Promise<void>;
@@ -83,6 +84,13 @@ export const useSceneStore = create<SceneState>((set, get) => ({
     const candidate: PieceInstance = { ...piece, rotation: piece.rotation === 0 ? 90 : 0 };
     if (hasCollision(candidate, pieces)) return;
     set({ pieces: pieces.map((p) => (p.id === id ? candidate : p)) });
+  },
+
+  setPieceColor: (id, color) => {
+    const { pieces } = get();
+    set({
+      pieces: pieces.map((p) => (p.id === id ? { ...p, colorOverride: color ?? undefined } : p)),
+    });
   },
 
   setViewMode: (viewMode) => set({ viewMode }),

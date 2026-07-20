@@ -21,6 +21,7 @@ export interface PieceInstance {
   gridX: number;
   gridY: number;
   rotation: 0 | 90;
+  colorOverride?: string;
 }
 
 export function getFootprint(
@@ -30,4 +31,10 @@ export function getFootprint(
   return instance.rotation === 90
     ? { width: def.depth, depth: def.width }
     : { width: def.width, depth: def.depth };
+}
+
+export function getPieceColor(
+  instance: Pick<PieceInstance, 'type' | 'colorOverride'>,
+): string {
+  return instance.colorOverride ?? PIECE_DEFS[instance.type].color;
 }

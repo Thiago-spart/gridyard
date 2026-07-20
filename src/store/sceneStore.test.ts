@@ -80,6 +80,22 @@ describe('rotatePiece', () => {
   });
 });
 
+describe('setPieceColor', () => {
+  it('sets a colorOverride on the target piece only', () => {
+    useSceneStore.getState().setPieceColor('crate-1', '#5f9e6f');
+    const pieces = useSceneStore.getState().pieces;
+    expect(pieces.find((p) => p.id === 'crate-1')?.colorOverride).toBe('#5f9e6f');
+    expect(pieces.find((p) => p.id === 'pallet-1')?.colorOverride).toBeUndefined();
+  });
+
+  it('clears colorOverride when passed null', () => {
+    useSceneStore.getState().setPieceColor('crate-1', '#5f9e6f');
+    useSceneStore.getState().setPieceColor('crate-1', null);
+    const crate = useSceneStore.getState().pieces.find((p) => p.id === 'crate-1');
+    expect(crate?.colorOverride).toBeUndefined();
+  });
+});
+
 describe('setViewMode', () => {
   it('updates the view mode', () => {
     useSceneStore.getState().setViewMode('perspective');
