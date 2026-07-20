@@ -23,6 +23,7 @@ const pieces: PieceInstance[] = [{ id: 'a', type: 'pallet', gridX: 0, gridY: 0, 
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mocks.signInAnonymously.mockResolvedValue({ error: null });
 });
 
 describe('ensureSession', () => {
@@ -36,6 +37,12 @@ describe('ensureSession', () => {
     mocks.getSession.mockResolvedValue({ data: { session: { user: { id: 'user-1' } } } });
     await ensureSession();
     expect(mocks.signInAnonymously).not.toHaveBeenCalled();
+  });
+
+  it('throws when anonymous sign-in fails', async () => {
+    mocks.getSession.mockResolvedValue({ data: { session: null } });
+    mocks.signInAnonymously.mockResolvedValue({ error: new Error('sign-in failed') });
+    await expect(ensureSession()).rejects.toThrow('sign-in failed');
   });
 });
 
@@ -74,9 +81,9 @@ describe('loadScene', () => {
     expect(await loadScene()).toEqual(pieces);
   });
 
-  it('returns null instead of throwing when the query errors', async () => {
+  it('rejects instead of returning null when the query errors', async () => {
     mocks.getSession.mockResolvedValue({ data: { session: { user: { id: 'user-1' } } } });
     mocks.maybeSingle.mockResolvedValue({ data: null, error: new Error('network down') });
-    expect(await loadScene()).toBeNull();
+    await expect(loadScene()).rejects.toThrow('network down');
   });
 });

@@ -19,7 +19,9 @@ export function App() {
   const debouncedSave = useMemo(() => debounce(saveScene, 600), [saveScene]);
 
   useEffect(() => {
-    loadScene();
+    loadScene().catch((error) => {
+      console.error('Failed to load scene:', error);
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

@@ -111,6 +111,20 @@ describe('saveScene / loadScene', () => {
     await useSceneStore.getState().loadScene();
     expect(useSceneStore.getState().hasLoaded).toBe(true);
   });
+
+  it('leaves hasLoaded false and pieces unchanged, and rejects, when persistLoad fails', async () => {
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const failure = new Error('network down');
+    mocks.loadScene.mockRejectedValueOnce(failure);
+
+    await expect(useSceneStore.getState().loadScene()).rejects.toThrow('network down');
+
+    expect(useSceneStore.getState().hasLoaded).toBe(false);
+    expect(useSceneStore.getState().pieces).toEqual(INITIAL_PIECES);
+    expect(consoleErrorSpy).toHaveBeenCalledWith('Failed to load scene:', failure);
+
+    consoleErrorSpy.mockRestore();
+  });
 });
 
 describe('saveStatus', () => {

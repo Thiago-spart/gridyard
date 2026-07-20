@@ -103,7 +103,13 @@ export const useSceneStore = create<SceneState>((set, get) => ({
 
   loadScene: async () => {
     await ensureSession();
-    const loaded = await persistLoad();
+    let loaded: PieceInstance[] | null;
+    try {
+      loaded = await persistLoad();
+    } catch (error) {
+      console.error('Failed to load scene:', error);
+      throw error;
+    }
     if (loaded) set({ pieces: loaded, selectedIds: [] });
     set({ hasLoaded: true });
   },

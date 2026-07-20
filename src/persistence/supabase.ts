@@ -20,7 +20,8 @@ export async function ensureSession(): Promise<void> {
     data: { session },
   } = await client.auth.getSession();
   if (!session) {
-    await client.auth.signInAnonymously();
+    const { error } = await client.auth.signInAnonymously();
+    if (error) throw error;
   }
 }
 
@@ -46,6 +47,7 @@ export async function loadScene(): Promise<PieceInstance[] | null> {
     .select('data')
     .eq('user_id', user_id)
     .maybeSingle();
-  if (error || !data) return null;
+  if (error) throw error;
+  if (!data) return null;
   return data.data as PieceInstance[];
 }
