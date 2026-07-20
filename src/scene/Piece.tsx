@@ -1,6 +1,6 @@
 import type { ThreeEvent } from '@react-three/fiber';
 import { Html, Outlines } from '@react-three/drei';
-import { PIECE_DEFS, getFootprint, getPieceColor, type PieceInstance } from '../lib/pieces';
+import { getFootprint, getPieceColor, getPieceLabel, type PieceInstance } from '../lib/pieces';
 import { CELL_SIZE_METERS } from '../lib/grid';
 import { useSceneStore } from '../store/sceneStore';
 
@@ -11,7 +11,6 @@ interface PieceProps {
 }
 
 export function Piece({ piece, dragPoint, onDragStart }: PieceProps) {
-  const def = PIECE_DEFS[piece.type];
   const { width, depth } = getFootprint(piece);
   const selectedIds = useSceneStore((s) => s.selectedIds);
   const selectPiece = useSceneStore((s) => s.selectPiece);
@@ -42,7 +41,7 @@ export function Piece({ piece, dragPoint, onDragStart }: PieceProps) {
       {isSelected && (
         <Html position={[0, 0.6, 0]} center wrapperClass="pointer-events-none">
           <div className="whitespace-nowrap rounded bg-paper-raised px-1.5 py-0.5 text-xs text-ink shadow-sm">
-            {def.label}
+            {getPieceLabel(piece)}
           </div>
         </Html>
       )}

@@ -3,7 +3,8 @@ import { Scene } from './scene/Scene';
 import { MeasurementPanel } from './ui/MeasurementPanel';
 import { Legend } from './ui/Legend';
 import { RotateButton } from './ui/RotateButton';
-import { ColorSwatchPicker } from './ui/ColorSwatchPicker';
+import { PieceForm } from './ui/PieceForm';
+import { DeleteButton } from './ui/DeleteButton';
 import { ViewToggle } from './ui/ViewToggle';
 import { ResponsiveLayout } from './ui/ResponsiveLayout';
 import { SaveStatus } from './ui/SaveStatus';
@@ -39,10 +40,12 @@ export function App() {
         <div className="flex flex-col gap-3">
           <SaveStatus />
           <ViewToggle />
+          <PieceForm mode="add" />
           <Legend />
           <MeasurementPanel />
           <RotateButton />
-          <ColorSwatchPicker />
+          <DeleteButton />
+          <PieceForm mode="edit" />
         </div>
       }
     />

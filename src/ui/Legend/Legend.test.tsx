@@ -10,4 +10,9 @@ describe('Legend', () => {
     expect(screen.getByText('Crate')).toBeInTheDocument();
     expect(screen.getByText('Workstation')).toBeInTheDocument();
   });
+
+  it('does not list the internal "custom" placeholder type', () => {
+    render(<Legend />);
+    expect(screen.queryByText('Custom')).not.toBeInTheDocument();
+  });
 });

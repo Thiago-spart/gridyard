@@ -1,10 +1,12 @@
 import { create } from 'zustand';
 import { getFootprint, type PieceInstance } from '../lib/pieces';
 import { hasCollision } from '../lib/collision';
-import { worldToGrid } from '../lib/grid';
+import { worldToGrid, BOARD_WIDTH, BOARD_DEPTH } from '../lib/grid';
+import { findFreeSpot } from '../lib/placement';
 import { ensureSession, saveScene as persistSave, loadScene as persistLoad } from '../persistence';
 
 export type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
+export type PlacementResult = 'created' | 'updated' | 'conflict' | 'too-large' | 'no-space';
 
 interface SceneState {
   pieces: PieceInstance[];
@@ -18,6 +20,13 @@ interface SceneState {
   movePiece: (id: string, worldX: number, worldZ: number) => boolean;
   rotatePiece: (id: string) => void;
   setPieceColor: (id: string, color: string | null) => void;
+  addPiece: (input: { width: number; depth: number; label: string; color: string }) => PlacementResult;
+  updatePiece: (
+    id: string,
+    input: { width: number; depth: number; label: string; color: string },
+    options?: { reposition?: boolean },
+  ) => PlacementResult;
+  deletePiece: (id: string) => void;
   setViewMode: (mode: 'top' | 'perspective') => void;
   resetView: () => void;
   saveScene: () => Promise<void>;
@@ -90,6 +99,68 @@ export const useSceneStore = create<SceneState>((set, get) => ({
     const { pieces } = get();
     set({
       pieces: pieces.map((p) => (p.id === id ? { ...p, colorOverride: color ?? undefined } : p)),
+    });
+  },
+
+  addPiece: (input) => {
+    const { width, depth, label, color } = input;
+    if (width > BOARD_WIDTH || depth > BOARD_DEPTH) return 'too-large';
+    const { pieces } = get();
+    const spot = findFreeSpot(width, depth, pieces);
+    if (!spot) return 'no-space';
+    const newPiece: PieceInstance = {
+      id: crypto.randomUUID(),
+      type: 'custom',
+      gridX: spot.gridX,
+      gridY: spot.gridY,
+      rotation: 0,
+      widthOverride: width,
+      depthOverride: depth,
+      labelOverride: label,
+      colorOverride: color,
+    };
+    set({ pieces: [...pieces, newPiece] });
+    return 'created';
+  },
+
+  updatePiece: (id, input, options) => {
+    const { width, depth, label, color } = input;
+    if (width > BOARD_WIDTH || depth > BOARD_DEPTH) return 'too-large';
+    const { pieces } = get();
+    const piece = pieces.find((p) => p.id === id);
+    if (!piece) return 'conflict';
+
+    const candidateAtCurrent: PieceInstance = {
+      ...piece,
+      widthOverride: width,
+      depthOverride: depth,
+      labelOverride: label,
+      colorOverride: color,
+    };
+    const effective = getFootprint(candidateAtCurrent);
+    const fitsAtCurrent =
+      candidateAtCurrent.gridX + effective.width <= BOARD_WIDTH &&
+      candidateAtCurrent.gridY + effective.depth <= BOARD_DEPTH &&
+      !hasCollision(candidateAtCurrent, pieces);
+
+    if (fitsAtCurrent) {
+      set({ pieces: pieces.map((p) => (p.id === id ? candidateAtCurrent : p)) });
+      return 'updated';
+    }
+    if (!options?.reposition) return 'conflict';
+
+    const spot = findFreeSpot(effective.width, effective.depth, pieces, id);
+    if (!spot) return 'no-space';
+    const relocated: PieceInstance = { ...candidateAtCurrent, gridX: spot.gridX, gridY: spot.gridY };
+    set({ pieces: pieces.map((p) => (p.id === id ? relocated : p)) });
+    return 'updated';
+  },
+
+  deletePiece: (id) => {
+    const { pieces, selectedIds } = get();
+    set({
+      pieces: pieces.filter((p) => p.id !== id),
+      selectedIds: selectedIds.filter((sid) => sid !== id),
     });
   },
 
