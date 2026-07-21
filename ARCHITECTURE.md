@@ -83,9 +83,9 @@ infrastructure — lower-priority tools are explicitly stretch goals, not commit
 | Core, ~30-45min one-time setup | **CI/CD** (GitHub Actions) | Lint + typecheck + `vitest run` + build, on every push |
 | After core features work | **React Testing Library** | Component tests for non-3D UI: measurement panel, legend, toolbar |
 | Stretch, only if time remains | **Storybook** | R3F/Canvas doesn't story well without extra addon config — real setup tax |
-| Stretch, only if time remains | **Cypress** | E2E against a WebGL canvas is inherently brittle (no DOM to target for drag-and-drop on pieces) |
+| Added post-MVP | **Playwright** | E2E for `scene/`'s canvas interactions (select, drag-move, rotate, view toggle). The WebGL-canvas-has-no-DOM problem is solved with a small calibrated grid→screen coordinate helper (`e2e/gridToScreen.ts`) rather than a DOM query; assertions stay DOM-only (selection label, measurement panel text) — see `docs/superpowers/specs/2026-07-21-playwright-e2e-suite-design.md`. |
 
-If Storybook/Cypress don't make it in, that's documented as a conscious trade-off in the
+If Storybook doesn't make it in, that's documented as a conscious trade-off in the
 technical write-up ("what I'd add with more time"), not silently dropped.
 
 ## Folder structure
@@ -94,7 +94,7 @@ technical write-up ("what I'd add with more time"), not silently dropped.
 src/
 ├── main.tsx
 ├── App.tsx
-├── scene/                    # R3F / WebGL-rendered — NOT covered by RTL
+├── scene/                    # R3F / WebGL-rendered — not RTL-testable, covered by e2e/ (Playwright) instead
 │   ├── Scene.tsx              # Canvas + orthographic camera + lighting
 │   ├── Board.tsx              # grid/base plane
 │   ├── Piece.tsx              # piece mesh + drag/select pointer handlers
@@ -241,12 +241,14 @@ primitive geometries only, no GLTF assets involved.
 
 ## GitHub Actions (CI)
 
-Single sequential job — lint, typecheck, test, build all gate on each other in order.
-No parallel/matrix jobs: the project is small enough that splitting them would add CI
-config complexity without meaningfully saving time. Storybook/Cypress steps are
-deliberately **not** included yet, since both are stretch goals that may not exist by
-submission — they get added to this workflow only if/when they actually land, per the
-Tooling & testing strategy priority order.
+Two jobs. `quality` — lint, typecheck, test, build, all gating on each other in
+sequence — is still the project's small enough that splitting *those* four into
+parallel/matrix jobs wouldn't meaningfully save time. `e2e` runs the Playwright suite
+(`pnpm test:e2e`) `needs: quality`, as a separate job with its own Chromium install/cache,
+so a lint/type/unit-test failure surfaces fast without waiting on browser setup, and an
+E2E flake doesn't block that fast signal from landing. Storybook is still **not**
+included, since it remains a stretch goal that may not land, per the Tooling & testing
+strategy priority order.
 
 Deployment itself is handled by Vercel's native GitHub integration (auto-deploy on push),
 not scripted in Actions — keeps this workflow scoped to quality gates only.
