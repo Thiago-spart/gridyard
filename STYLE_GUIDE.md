@@ -132,7 +132,9 @@ once.
 ## Status
 
 Task 14 of the implementation plan (`docs/superpowers/plans/2026-07-17-mini-3d-scene-editor-mvp.md`)
-now copies `assets/brand/logo.svg` and `logo-mark.svg` into `public/`, sets the page
-title to "Gridyard," and wires the SVG favicon. The PNG favicon fallback,
-apple-touch-icon, PWA icon, and OG image from the asset-creation steps above are not in
-the MVP plan — optional polish for later.
+copied `assets/brand/logo.svg` and `logo-mark.svg` into `public/`, set the page title
+to "Gridyard," and wired the SVG favicon. The PNG favicon fallback, apple-touch-icon,
+PWA icon, and OG image deferred at that point were completed per
+`docs/superpowers/specs/2026-07-21-seo-shareability-design.md`: the full raster set,
+`site.webmanifest`, and `og-image.png` now exist in `public/`, and `index.html` carries
+the full metadata (description, Open Graph, Twitter Card, canonical URL, JSON-LD).
