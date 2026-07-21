@@ -2,6 +2,7 @@
 **Desafio Técnico:** Dev Full-Stack com 3D Web — Mini Editor de Cena 3D  
 **Empresa:** InLab / Artefacto  
 **Projeto:** Gridyard (Warehouse Floor-Plan Layout Tool)  
+**Demo ao vivo:** 🔗 [gridyard.vercel.app](https://gridyard.vercel.app)
 
 ---
 
@@ -32,6 +33,7 @@ A interface oferece visualização superior plana (vista ortográfica de planta 
    - **Personalização de Cores:** Seletor de paleta (*swatches*) para alterar a cor de qualquer peça selecionada.
    - **Criação e Exclusão Dinâmica de Peças:** Formulário para criar novas peças personalizadas com dimensões e nomes customizados, além da possibilidade de excluir peças da cena.
    - **Desempenho Otimizado:** Arquitetura preparada para suportar dezenas de peças no tabuleiro mantendo 60 quadros por segundo (60 FPS) e sem travamentos.
+   - **Deploy Real e Compartilhável:** Aplicação publicada em produção na Vercel, com domínio próprio (`gridyard.vercel.app`), metadados completos para SEO/compartilhamento (Open Graph, Twitter Card, favicon set, `robots.txt`/`sitemap.xml`) e deploy contínuo a partir de `master`.
 
 ---
 
@@ -45,7 +47,8 @@ A interface oferece visualização superior plana (vista ortográfica de planta 
 | **Renderização 3D** | Three.js, React Three Fiber (R3F), `@react-three/drei` |
 | **Estado da Cena** | Zustand (`src/store/sceneStore.ts`) |
 | **Persistência & Auth** | Supabase JS SDK (Auth Anônimo + Row-Level Security) / `localStorage` |
-| **Qualidade & Testes** | Vitest, React Testing Library, ESLint, TypeScript Strict Mode, GitHub Actions CI/CD |
+| **Qualidade & Testes** | Vitest, React Testing Library, Playwright (E2E), ESLint, TypeScript Strict Mode, GitHub Actions CI/CD |
+| **Deploy & Infra** | Vercel (deploy contínuo a partir de `master`, domínio `gridyard.vercel.app`) |
 
 ### Arquitetura de Código e Organização
 
@@ -79,6 +82,8 @@ src/
     ├── localStorage.ts        # Fallback local síncrono
     └── supabase.ts            # Integração Supabase via autenticação anônima e RLS
 ```
+
+Fora de `src/`, um diretório `e2e/` na raiz do repositório contém a suíte Playwright que cobre `scene/` (interações de canvas WebGL — seleção, arraste, rotação, alternância de câmera — não testáveis via React Testing Library), incluindo `e2e/gridToScreen.ts`, um helper de projeção grade↔tela calibrado empiricamente contra a câmera fixa do app.
 
 ### Principais Decisões Arquiteturais e Trade-offs
 
@@ -130,6 +135,9 @@ O histórico unificado de prompts, respostas da IA, diagnósticos de erros, corr
 | **Etapa 16** | Persistência Supabase | Autenticação anônima, RLS e salvamento async | Prevenção de race-condition no autosave inicial com flag `hasLoaded`. |
 | **Etapa 17** | Câmera 3D em Perspectiva | Alternância entre 2D ortográfico e 3D livre | Análise de React Compiler descartada por conta da reconciliação R3F. |
 | **Etapa 18-21** | Cores, Edição Dinâmica & Perf | Paleta de cores, `PieceForm` e memoização | Recolor por contorno (*outline*) e memoização de `Piece` para escala de peças. |
+| **Etapa 22** | Suíte E2E com Playwright | Cobertura de `scene/` (canvas WebGL) | Helper de projeção grade→tela calibrado empiricamente; 2 bugs reais de config só encontrados ao executar de verdade. |
+| **Etapa 23-24** | Deploy na Vercel | CLI, variáveis de ambiente, sincronização de branches | Recuperação de credenciais Supabase via MCP após `vercel link` sobrescrever `.env.local`; `master` sincronizado com `dev`. |
+| **Etapa 25** | SEO, Compartilhamento & Domínio | Metadados, favicon set, imagem OG, domínio `gridyard.vercel.app` | 3 particularidades reais da plataforma Vercel descobertas só na execução (rename não repropaga alias, proteção SSO padrão em alias manual). |
 
 ---
 

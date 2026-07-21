@@ -646,5 +646,72 @@ branch and opened the PR against `dev` only after explicit approval
 
 **How I resolved it:** Pushed as PR #22 (`cb42b82`), merged into `dev`.
 
-**How I continued:** All core requirements, bonus features, and performance optimizations are fully completed, tested, and documented.
+**How I continued:** All core requirements, bonus features, and performance optimizations are fully completed, tested, and documented. With the MVP + bonus scope closed, work shifted to closing the one documented testing gap (`scene/` has no E2E coverage) and to shipping a live deployment.
+
+---
+
+## Step 22 — Checked-in Playwright E2E suite
+
+**What I was doing:** `ARCHITECTURE.md`'s testing strategy had explicitly flagged E2E as a skipped stretch goal ("E2E against a WebGL canvas is inherently brittle — no DOM to target for drag-and-drop"), and the AI_LOG itself shows Playwright was only ever used twice as ad-hoc, outside-the-repo scratch verification (Steps 16 and 18). This step replaces that with a real, checked-in suite.
+
+**What I asked the AI:** "continue the testing pipeline" — deliberately vague; the AI asked a clarifying question and I picked "E2E/Playwright pipeline" as the specific scope.
+
+**What the AI answered:** Scoped it to core canvas interactions only (select, drag-move, rotate, view toggle) with no Supabase dependency, DOM-only assertions (no test-only hooks added to app code), and a separate CI job so a lint/unit-test failure still surfaces fast. The hard part — clicking a WebGL canvas with no queryable DOM — was solved with a small `e2e/gridToScreen.ts` helper that maps grid coordinates to canvas pixels via one static affine transform, calibrated against the app's fixed top-down camera.
+
+**Did it work? What was good/bad:** The coordinate math could not be trusted on paper, so it was calibrated empirically against the real running app (`pnpm dev`, a scratch Playwright script, least-squares fit over the 4 known fixture pieces' screen positions) before being written into the plan. That process caught two real bugs a paper plan would have missed: a Playwright `devices['Desktop Chrome']` project override silently clobbering the configured viewport, and a click landing before R3F's first frame had settled (fixed with a documented 300ms scene-ready wait). A third issue — `selectPiece()` keeps up to 2 pieces selected at once, so "the first matching label on the page" isn't the same as "the label for the piece I just clicked" — was caught by the task reviewer during actual execution, not the design phase.
+
+**How I resolved it:** 4 spec files (`select`, `drag-move`, `rotate`, `view-toggle`), all passing stably across repeated runs; a new `e2e` job in CI (`needs: quality`) with its own Chromium install/cache. Pushed as PR #25 (`ba8d844`), merged into `dev`.
+
+**How I continued:** With CI/testing closed out, moved to actually deploying the app.
+
+---
+
+## Step 23 — Vercel deployment
+
+**What I was doing:** Standing up a live, publicly reachable deployment for the first time.
+
+**What I asked the AI:** "let's post this site in the vercel."
+
+**What the AI answered:** Installed the Vercel CLI via `npx`, had me run `vercel login` interactively (browser OAuth), then ran `vercel link` to connect the GitHub repo and create the Vercel project.
+
+**Did it work? What was good/bad:** `vercel link` silently overwrote the local `.env.local` — which held real Supabase credentials for local dev — replacing it with just a fresh `VERCEL_OIDC_TOKEN`. This wasn't caught until after the fact; I flagged it immediately rather than assuming, confirmed real credentials had been lost, and recovered them by querying the Supabase MCP directly (`list_projects` → `get_project_url` / `get_publishable_keys` for the `gridyard` project) instead of asking to dig through the dashboard. Also learned that a project's very first deployment always gets promoted to production regardless of whether `--prod` is passed — there's no existing production build yet to preserve a preview against.
+
+**How I resolved it:** Restored `.env.local`, set the same two Supabase env vars on Vercel across Production/Preview/Development, and deployed. Live-verified with a throwaway Playwright check against the deployed URL: canvas renders, zero console/network errors, `SaveStatus` shows "Saved" (confirming the restored Supabase credentials actually work in production, not just locally).
+
+**How I continued:** Noticed `master` (GitHub's default branch, and the branch Vercel had auto-configured as its production branch) was still on the initial scaffold commit — 26 commits behind `dev` — so the live site wasn't actually building from the branch Vercel was watching.
+
+---
+
+## Step 24 — Syncing `master` with `dev`
+
+**What I was doing:** Making `master` — GitHub's default branch and Vercel's configured production branch — actually reflect the shipped app, instead of the original scaffold commit.
+
+**What I asked the AI:** "update the master with the dev, and the vercel website should listen to master."
+
+**What the AI answered:** Confirmed `master` had zero commits diverging from `dev` (a clean fast-forward, no merge risk) and, before touching anything, read Vercel's project settings directly via its REST API (using the CLI's own stored auth token) to confirm the production branch was already `master` — auto-detected from GitHub's default branch back when the repo was first connected. No Vercel config change was actually needed.
+
+**Did it work? What was good/bad:** Yes — fast-forwarded and pushed `master`, and confirmed via `vercel ls` that a fresh Production deployment landed automatically within seconds, built from `master`'s new commit.
+
+**How I resolved it:** `master` now tracks `dev` exactly; every future push to `master` auto-deploys to production.
+
+**How I continued:** With deployment and its branch wiring both confirmed, moved to an SEO/shareability pass on the now-live site.
+
+---
+
+## Step 25 — SEO & shareability pass, and a branded domain
+
+**What I was doing:** The deployed link had almost no SEO setup — a bare `<title>Gridyard</title>`, an SVG-only favicon, and a generic `innovationchallenger.vercel.app` URL that didn't match the brand.
+
+**What I asked the AI:** "now let's look at the SEO of the site, let's start a plan to optimize it."
+
+**What the AI answered:** Scoped the goal to shareability + technical correctness (not search-ranking growth, which isn't relevant for a single-page demo tool). A useful discovery during brainstorming: `STYLE_GUIDE.md` already fully specified the favicon/OG-image plan (exact copy, composition, file list) as a deferred "optional polish for later" item from the MVP plan — most of the design work was already decided, just never executed. Filled the remaining gaps (meta description, robots.txt, sitemap.xml, canonical URL, JSON-LD structured data) and proposed renaming the Vercel project to `gridyard` for a branded domain.
+
+**Did it work? What was good/bad:** Executed via subagent-driven-development (6 tasks, each with a fresh implementer + reviewer subagent, plus a final whole-branch review) — all came back clean. Three real Vercel platform gotchas surfaced only by actually running the steps, not from documentation:
+1. `vercel link --yes` without an explicit `--project` flag silently creates a brand-new empty project matching the current directory's name, once the cached project name no longer matches (e.g. right after a rename) — caught immediately via `vercel project ls` showing a stray empty project, which was removed.
+2. Renaming a Vercel project does **not** repoint existing deployment aliases immediately — the new `gridyard.vercel.app` alias only gets generated on the *next* production deployment, not at rename time. The plan's Task 1 had assumed otherwise; corrected in-place before the rest of the plan depended on it.
+3. After that next deploy, `gridyard.vercel.app` still 404'd. Manually creating the alias (`vercel alias set`) got it pointing at the right deployment, but it then redirected to a Vercel SSO login page — a manually-created alias inherits the project's default deployment-protection setting (`all_except_custom_domains`), unlike the original auto-provisioned bare domain. Disabled SSO protection for the project (`vercel project protection disable --sso`) since this is meant to be a public demo, and all 8 new asset endpoints (`/`, `/og-image.png`, `/robots.txt`, `/sitemap.xml`, favicons, manifest) returned `200`.
+
+**How I resolved it:** Pushed as PR #27 (`ad7fa73`), merged into `dev`, then `master` fast-forwarded again to deploy it — `https://gridyard.vercel.app` is now the live, branded, fully-metadata'd production URL. Also updated the GitHub repo's homepage URL (previously pointing at the stale `innovationchallenger.vercel.app`) to match.
+
+**How I continued:** Documentation pass — this AI_LOG update, plus the corresponding `SUBMISSION.md` refresh.
 
