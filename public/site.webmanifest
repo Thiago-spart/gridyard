@@ -1,0 +1,7 @@
+{
+  "name": "Gridyard",
+  "short_name": "Gridyard",
+  "icons": [{ "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }],
+  "theme_color": "#2f6fed",
+  "background_color": "#f7f6f2"
+}
