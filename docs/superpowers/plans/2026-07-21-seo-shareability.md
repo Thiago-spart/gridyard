@@ -71,25 +71,38 @@ gets refreshed as a side effect of Step 3.
 
 - [ ] **Step 3: Refresh the local project link**
 
+  **Gotcha (found during execution): always pass `--project` explicitly.**
+  `vercel link --yes` alone is non-interactive and, once the cached
+  `.vercel/project.json`'s project name (`innovation_challenger`) no longer matches any
+  real project (it was just renamed), silently *creates a brand-new empty project* named
+  after the current directory instead of relinking to the renamed one. Use:
+
   ```bash
-  npx vercel@latest link --yes
+  npx vercel@latest link --yes --project gridyard
   cat .vercel/project.json
   ```
 
-  Expected: `"projectName":"gridyard"` in the output (the `projectId` value itself does
-  not change — renaming doesn't create a new project).
+  Expected: `"projectName":"gridyard"` in the output, and `projectId` unchanged from
+  before the rename (renaming doesn't create a new project — only linking incorrectly
+  can). If a stray `innovation_challenger` project was accidentally created by a bare
+  `vercel link --yes`, remove it: `echo "y" | npx vercel@latest project rm innovation_challenger`.
 
-- [ ] **Step 4: Verify the new domain resolves to the live app**
+- [ ] **Step 4: Confirm the domain will update on the next deploy (not immediately)**
 
   ```bash
   curl -s -o /dev/null -w "HTTP %{http_code}\n" https://gridyard.vercel.app
   curl -s -o /dev/null -w "HTTP %{http_code}\n" https://innovationchallenger.vercel.app
+  npx vercel@latest alias ls
   ```
 
-  Expected: `https://gridyard.vercel.app` returns `HTTP 200` (renaming a Vercel project
-  immediately repoints its default domain — no redeploy needed); the old
-  `innovationchallenger.vercel.app` is expected to stop resolving (`404`), which is the
-  accepted tradeoff from the design doc.
+  Expected: `gridyard.vercel.app` still returns `404` and `innovationchallenger.vercel.app`
+  still returns `200` right after the rename — **a project rename does not repoint
+  existing deployment aliases**; `vercel alias ls` will show the old
+  `innovationchallenger*.vercel.app` aliases still attached to the current production
+  deployment. The `gridyard.vercel.app` alias is only generated on the **next** production
+  deployment (Vercel derives the default `.vercel.app` alias from the project's current
+  name at deploy time, not retroactively). Task 6's merge-to-`master` triggers that next
+  deployment — verify the domain there, not here.
 
 - [ ] **Step 5: Commit**
 
